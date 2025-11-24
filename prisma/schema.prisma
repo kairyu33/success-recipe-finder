@@ -1,0 +1,176 @@
+// Prisma schema for note.com / codoc integration
+// This schema supports access code-based authentication for note subscribers
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// アクセスコード管理
+// note.comの有料購読者に配布するアクセスコード
+model AccessCode {
+  id        String   @id @default(cuid())
+  code      String   @unique // アクセスコード（例: NOTE-ABC123-XYZ）
+
+  // プラン情報
+  plan      String   // 'free', 'basic', 'pro', 'unlimited'
+  status    String   @default("active") // 'active', 'expired', 'revoked'
+
+  // 使用制限
+  monthlyLimit Int    @default(5) // 月間利用可能回数
+
+  // 有効期限
+  expiresAt DateTime? // NULL = 無期限
+
+  // note.com連携情報（任意）
+  noteUserId String?  // note.comのユーザーID（わかる場合）
+  noteUrl    String?  // 購読元のnote記事URL
+
+  // メタデータ
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastUsedAt DateTime? // 最後に使用された日時
+
+  // リレーション
+  user      User?
+  usageLogs UsageLog[]
+
+  @@index([code])
+  @@index([status])
+}
+
+// ユーザーセッション管理
+// アクセスコードでログインしたユーザーの情報
+model User {
+  id            String   @id @default(cuid())
+
+  // アクセスコード関連
+  accessCodeId  String   @unique
+  accessCode    AccessCode @relation(fields: [accessCodeId], references: [id], onDelete: Cascade)
+
+  // ユーザー情報（任意）
+  displayName   String?  // 表示名（noteのユーザー名など）
+  email         String?  // メールアドレス（任意）
+
+  // セッション管理
+  sessionToken  String   @unique // JWTトークン
+
+  // メタデータ
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime @default(now())
+
+  // リレーション
+  usageLogs     UsageLog[]
+
+  @@index([sessionToken])
+}
+
+// API使用履歴
+// 各ユーザーのAPI使用状況を記録
+model UsageLog {
+  id           String   @id @default(cuid())
+
+  // ユーザー関連
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessCodeId String
+  accessCode   AccessCode @relation(fields: [accessCodeId], references: [id], onDelete: Cascade)
+
+  // 使用情報
+  endpoint     String   // 'analyze-article-full'
+
+  // トークン使用量
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  totalTokens  Int      @default(0)
+
+  // キャッシュ情報
+  cacheHit     Boolean  @default(false)
+
+  // コスト情報（USD）
+  cost         Float    @default(0)
+
+  // 記事情報
+  articleLength Int?    // 分析した記事の文字数
+
+  // メタデータ
+  createdAt    DateTime @default(now())
+
+  // 月次集計用インデックス
+  @@index([userId, createdAt])
+  @@index([accessCodeId, createdAt])
+}
+
+// 管理者用テーブル（将来拡張用）
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // ハッシュ化されたパスワード
+  role      String   @default("admin") // 'admin', 'super_admin'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// note記事管理テーブル
+model Article {
+  id            String   @id @default(cuid())
+  rowNumber     Int      // 行番号
+  title         String   // タイトル
+  noteLink      String   @unique // noteリンク（ユニーク制約）
+  publishedAt   DateTime // 投稿日時
+  characterCount Int     // 文字数
+  estimatedReadTime Int  // 推定読了時間（分）
+  genre         String   // ジャンル
+  targetAudience String  // ユーザ層
+  benefit       String   // メリット
+  recommendationLevel String // オススメ度
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // メンバーシップとのリレーション
+  memberships   ArticleMembership[]
+
+  @@index([noteLink])
+  @@index([publishedAt])
+  @@index([genre])
+}
+
+// メンバーシップタグ管理テーブル
+model Membership {
+  id          String   @id @default(cuid())
+  name        String   @unique // メンバーシップ名（例: "プレミアム", "スタンダード"）
+  description String?  // メンバーシップの説明
+  color       String?  // 表示用のカラーコード（例: "#FF5733"）
+  sortOrder   Int      @default(0) // 表示順序
+  isActive    Boolean  @default(true) // 有効/無効
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 記事とのリレーション
+  articles    ArticleMembership[]
+
+  @@index([name])
+  @@index([sortOrder])
+}
+
+// 記事とメンバーシップの中間テーブル（多対多リレーション）
+model ArticleMembership {
+  id           String     @id @default(cuid())
+  articleId    String
+  membershipId String
+  createdAt    DateTime   @default(now())
+
+  // リレーション
+  article      Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, membershipId]) // 同じ組み合わせを防ぐ
+  @@index([articleId])
+  @@index([membershipId])
+}

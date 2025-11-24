@@ -1,0 +1,4 @@
+rowNumber,title,noteLink,publishedAt,characterCount,estimatedReadTime,genre,targetAudience,benefit,recommendationLevel,membershipIds
+1,サンプル記事1,https://note.com/sample/n/n001,2024-01-01,3000,10,テクノロジー,エンジニア,開発効率化,★★★★★,
+2,サンプル記事2,https://note.com/sample/n/n002,2024-01-02,2500,8,ビジネス,起業家,経営ノウハウ,★★★★☆,
+3,サンプル記事3,https://note.com/sample/n/n003,2024-01-03,4000,12,デザイン,デザイナー,UIデザイン基礎,★★★★★,

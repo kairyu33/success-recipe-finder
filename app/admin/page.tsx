@@ -1,0 +1,448 @@
+/**
+ * 管理画面メインページ（Premium Redesign）
+ */
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import {
+  LoginForm,
+  CSVUpload,
+  ArticleForm,
+  ArticleList,
+  MembershipForm,
+  MembershipList,
+} from '@/app/components/admin';
+import {
+  fetchAdminArticles,
+  fetchAdminMemberships,
+  createArticle,
+  updateArticle,
+  deleteArticle,
+  createMembership,
+  updateMembership,
+  deleteMembership,
+} from '@/lib/api';
+import { MESSAGES, DEFAULT_MEMBERSHIP_COLOR } from '@/lib/constants';
+import { formatDate } from '@/lib/utils';
+import type {
+  Article,
+  Membership,
+  ArticleFormData,
+  MembershipFormData,
+  Tab,
+} from '@/types';
+
+export default function AdminPage() {
+  // 認証状態
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // タブ状態
+  const [activeTab, setActiveTab] = useState<Tab>('articles');
+
+  // データ状態
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 記事フォーム状態
+  const [articleForm, setArticleForm] = useState<ArticleFormData>({
+    title: '',
+    noteLink: '',
+    publishedAt: '',
+    characterCount: 0,
+    estimatedReadTime: 0,
+    genre: '',
+    targetAudience: '',
+    benefit: '',
+    recommendationLevel: '',
+    membershipIds: [],
+  });
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+  const [showArticleForm, setShowArticleForm] = useState(false);
+
+  // メンバーシップフォーム状態
+  const [membershipForm, setMembershipForm] = useState<MembershipFormData>({
+    name: '',
+    description: '',
+    color: DEFAULT_MEMBERSHIP_COLOR,
+    sortOrder: 0,
+    isActive: true,
+  });
+  const [editingMembershipId, setEditingMembershipId] = useState<string | null>(
+    null
+  );
+  const [showMembershipForm, setShowMembershipForm] = useState(false);
+
+  // データ取得
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [articlesData, membershipsData] = await Promise.all([
+        fetchAdminArticles(),
+        fetchAdminMemberships(),
+      ]);
+
+      setArticles(articlesData);
+      setMemberships(membershipsData);
+    } catch (error) {
+      console.error('データ取得エラー:', error);
+      toast.error(MESSAGES.ERROR.DATA_FETCH_FAILED);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 記事操作
+  const handleArticleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (editingArticleId) {
+        await updateArticle(editingArticleId, articleForm);
+        toast.success(MESSAGES.SUCCESS.ARTICLE_UPDATED);
+      } else {
+        await createArticle(articleForm);
+        toast.success(MESSAGES.SUCCESS.ARTICLE_CREATED);
+      }
+      resetArticleForm();
+      fetchData();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : MESSAGES.ERROR.OPERATION_FAILED;
+      toast.error(message);
+    }
+  };
+
+  const handleArticleEdit = (article: Article) => {
+    setArticleForm({
+      title: article.title,
+      noteLink: article.noteLink,
+      publishedAt: formatDate(article.publishedAt),
+      characterCount: article.characterCount,
+      estimatedReadTime: article.estimatedReadTime,
+      genre: article.genre,
+      targetAudience: article.targetAudience,
+      benefit: article.benefit,
+      recommendationLevel: article.recommendationLevel,
+      membershipIds: article.memberships.map((m) => m.membership.id),
+    });
+    setEditingArticleId(article.id);
+    setShowArticleForm(true);
+  };
+
+  const handleArticleDelete = async (id: string) => {
+    if (!confirm(MESSAGES.CONFIRM.DELETE_ARTICLE)) return;
+
+    try {
+      await deleteArticle(id);
+      toast.success(MESSAGES.SUCCESS.ARTICLE_DELETED);
+      fetchData();
+    } catch (error) {
+      toast.error(MESSAGES.ERROR.OPERATION_FAILED);
+    }
+  };
+
+  const resetArticleForm = () => {
+    setArticleForm({
+      title: '',
+      noteLink: '',
+      publishedAt: '',
+      characterCount: 0,
+      estimatedReadTime: 0,
+      genre: '',
+      targetAudience: '',
+      benefit: '',
+      recommendationLevel: '',
+      membershipIds: [],
+    });
+    setEditingArticleId(null);
+    setShowArticleForm(false);
+  };
+
+  // メンバーシップ操作
+  const handleMembershipSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (editingMembershipId) {
+        await updateMembership(editingMembershipId, membershipForm);
+        toast.success(MESSAGES.SUCCESS.MEMBERSHIP_UPDATED);
+      } else {
+        await createMembership(membershipForm);
+        toast.success(MESSAGES.SUCCESS.MEMBERSHIP_CREATED);
+      }
+      resetMembershipForm();
+      fetchData();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : MESSAGES.ERROR.OPERATION_FAILED;
+      toast.error(message);
+    }
+  };
+
+  const handleMembershipEdit = (membership: Membership) => {
+    setMembershipForm({
+      name: membership.name,
+      description: membership.description || '',
+      color: membership.color || DEFAULT_MEMBERSHIP_COLOR,
+      sortOrder: membership.sortOrder,
+      isActive: membership.isActive,
+    });
+    setEditingMembershipId(membership.id);
+    setShowMembershipForm(true);
+  };
+
+  const handleMembershipDelete = async (id: string) => {
+    if (!confirm(MESSAGES.CONFIRM.DELETE_MEMBERSHIP)) return;
+
+    try {
+      await deleteMembership(id);
+      toast.success(MESSAGES.SUCCESS.MEMBERSHIP_DELETED);
+      fetchData();
+    } catch (error) {
+      toast.error(MESSAGES.ERROR.OPERATION_FAILED);
+    }
+  };
+
+  const resetMembershipForm = () => {
+    setMembershipForm({
+      name: '',
+      description: '',
+      color: DEFAULT_MEMBERSHIP_COLOR,
+      sortOrder: 0,
+      isActive: true,
+    });
+    setEditingMembershipId(null);
+    setShowMembershipForm(false);
+  };
+
+  // 認証されていない場合はログインフォームを表示
+  if (!isAuthenticated) {
+    return <LoginForm onSuccess={() => setIsAuthenticated(true)} />;
+  }
+
+  // ローディング中
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-neutral-50 via-white to-primary-50/30">
+        <div className="relative w-24 h-24 mb-6">
+          <div className="absolute inset-0 rounded-full border-4 border-primary-200" />
+          <div className="absolute inset-0 rounded-full border-4 border-primary-500 border-t-transparent animate-spin" />
+        </div>
+        <div className="text-2xl font-bold gradient-text">読み込み中...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30">
+      {/* Decorative gradient orbs */}
+      <div className="fixed top-0 right-0 w-96 h-96 bg-gradient-primary opacity-10 rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-96 h-96 bg-gradient-accent opacity-10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-7xl mx-auto px-4 py-12">
+        {/* Header */}
+        <div className="mb-12 animate-fade-in-up">
+          <h1 className="text-5xl font-bold mb-3">
+            <span className="gradient-text">管理画面</span>
+          </h1>
+          <p className="text-lg text-neutral-600">
+            記事とメンバーシップを管理
+          </p>
+
+          {/* Stats */}
+          <div className="flex items-center gap-8 mt-6">
+            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-2xl shadow-soft border border-neutral-100">
+              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-neutral-800">{articles.length}</div>
+                <div className="text-sm text-neutral-500">記事</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-2xl shadow-soft border border-neutral-100">
+              <div className="w-10 h-10 bg-gradient-accent rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-neutral-800">{memberships.length}</div>
+                <div className="text-sm text-neutral-500">メンバーシップ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="glass-light backdrop-blur-xl rounded-2xl p-2 mb-8 border border-white/50 shadow-soft inline-flex gap-2 animate-fade-in">
+          <button
+            onClick={() => setActiveTab('articles')}
+            className={`relative px-8 py-3.5 rounded-xl font-semibold transition-all duration-300 overflow-hidden ${
+              activeTab === 'articles'
+                ? 'bg-gradient-primary text-white shadow-primary'
+                : 'text-neutral-600 hover:bg-white/50'
+            }`}
+          >
+            {activeTab === 'articles' && (
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-shimmer" />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              記事管理
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('memberships')}
+            className={`relative px-8 py-3.5 rounded-xl font-semibold transition-all duration-300 overflow-hidden ${
+              activeTab === 'memberships'
+                ? 'bg-gradient-primary text-white shadow-primary'
+                : 'text-neutral-600 hover:bg-white/50'
+            }`}
+          >
+            {activeTab === 'memberships' && (
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-shimmer" />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              メンバーシップ管理
+            </span>
+          </button>
+        </div>
+
+        {/* 記事管理タブ */}
+        {activeTab === 'articles' && (
+          <div className="space-y-8 animate-fade-in">
+            {/* CSV Upload */}
+            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
+              <CSVUpload onSuccess={fetchData} />
+            </div>
+
+            {/* New Article Button */}
+            <div>
+              <button
+                onClick={() => setShowArticleForm(!showArticleForm)}
+                className="relative px-8 py-4 bg-gradient-primary text-white rounded-2xl font-semibold shadow-primary overflow-hidden group transition-all duration-300 hover:shadow-primary-lg"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <span className="relative z-10 flex items-center gap-3">
+                  {showArticleForm ? (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      フォームを閉じる
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      新規記事作成
+                    </>
+                  )}
+                </span>
+              </button>
+            </div>
+
+            {/* Article Form */}
+            {showArticleForm && (
+              <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg animate-scale-in">
+                <ArticleForm
+                  formData={articleForm}
+                  memberships={memberships}
+                  isEditing={!!editingArticleId}
+                  onSubmit={handleArticleSubmit}
+                  onChange={(data) => setArticleForm({ ...articleForm, ...data })}
+                  onCancel={resetArticleForm}
+                />
+              </div>
+            )}
+
+            {/* Articles List */}
+            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
+              <ArticleList
+                articles={articles}
+                onEdit={handleArticleEdit}
+                onDelete={handleArticleDelete}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* メンバーシップ管理タブ */}
+        {activeTab === 'memberships' && (
+          <div className="space-y-8 animate-fade-in">
+            {/* New Membership Button */}
+            <div>
+              <button
+                onClick={() => setShowMembershipForm(!showMembershipForm)}
+                className="relative px-8 py-4 bg-gradient-primary text-white rounded-2xl font-semibold shadow-primary overflow-hidden group transition-all duration-300 hover:shadow-primary-lg"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <span className="relative z-10 flex items-center gap-3">
+                  {showMembershipForm ? (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      フォームを閉じる
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      新規メンバーシップ作成
+                    </>
+                  )}
+                </span>
+              </button>
+            </div>
+
+            {/* Membership Form */}
+            {showMembershipForm && (
+              <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg animate-scale-in">
+                <MembershipForm
+                  formData={membershipForm}
+                  isEditing={!!editingMembershipId}
+                  onSubmit={handleMembershipSubmit}
+                  onChange={(data) =>
+                    setMembershipForm({ ...membershipForm, ...data })
+                  }
+                  onCancel={resetMembershipForm}
+                />
+              </div>
+            )}
+
+            {/* Memberships List */}
+            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
+              <MembershipList
+                memberships={memberships}
+                onEdit={handleMembershipEdit}
+                onDelete={handleMembershipDelete}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

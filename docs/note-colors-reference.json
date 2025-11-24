@@ -1,0 +1,294 @@
+{
+  "colorSystem": {
+    "name": "note Brand Color System",
+    "version": "1.0.0",
+    "lastUpdated": "2025-10-27",
+    "officialNoteColors": {
+      "primary": "#41c9b4",
+      "primaryDark": "#2ea690",
+      "success": "#1e7b65",
+      "danger": "#b22323",
+      "caution": "#ac7a2d",
+      "like": "#d13e5c",
+      "surface": "#f5f8fa",
+      "darkBackground": "#08131a"
+    }
+  },
+
+  "tailwindPalette": {
+    "primary": {
+      "50": "#e8f9f6",
+      "100": "#c7f2eb",
+      "200": "#9fe9de",
+      "300": "#6dd9ca",
+      "400": "#41c9b4",
+      "500": "#2ea690",
+      "600": "#258975",
+      "700": "#1e7b65",
+      "800": "#176553",
+      "900": "#114f42"
+    },
+    "accent": {
+      "50": "#fff5f5",
+      "100": "#ffe3e3",
+      "200": "#ffc9c9",
+      "300": "#ffa8a8",
+      "400": "#ff8787",
+      "500": "#ff6b6b",
+      "600": "#fa5252",
+      "700": "#f03e3e",
+      "800": "#e03131",
+      "900": "#c92a2a"
+    },
+    "success": {
+      "50": "#e8f9f6",
+      "100": "#c7f2eb",
+      "200": "#9fe9de",
+      "300": "#6dd9ca",
+      "400": "#41c9b4",
+      "500": "#2ea690",
+      "600": "#258975",
+      "700": "#1e7b65",
+      "800": "#176553",
+      "900": "#114f42"
+    },
+    "warning": {
+      "50": "#fff9e6",
+      "100": "#fff0c2",
+      "200": "#ffe69a",
+      "300": "#ffdb70",
+      "400": "#ffd04d",
+      "500": "#f5c02b",
+      "600": "#e0ad1f",
+      "700": "#c99a16",
+      "800": "#ac7a2d",
+      "900": "#8f6424"
+    },
+    "danger": {
+      "50": "#ffe6e6",
+      "100": "#ffc2c2",
+      "200": "#ff9a9a",
+      "300": "#ff7070",
+      "400": "#ff4d4d",
+      "500": "#e63939",
+      "600": "#cc2e2e",
+      "700": "#b22323",
+      "800": "#991d1d",
+      "900": "#801818"
+    },
+    "like": {
+      "50": "#ffe9f0",
+      "100": "#ffc9dc",
+      "200": "#ffa3c5",
+      "300": "#ff7dad",
+      "400": "#f55d92",
+      "500": "#e9447a",
+      "600": "#d13e5c",
+      "700": "#b8354f",
+      "800": "#9e2d42",
+      "900": "#852537"
+    },
+    "neutral": {
+      "50": "#f5f8fa",
+      "100": "#e8eef2",
+      "200": "#d1dce3",
+      "300": "#b3c5d1",
+      "400": "#8fa5b5",
+      "500": "#6b8599",
+      "600": "#4d6679",
+      "700": "#334b5f",
+      "800": "#1a2f3f",
+      "900": "#08131a"
+    }
+  },
+
+  "darkMode": {
+    "backgrounds": {
+      "primary": "#08131a",
+      "secondary": "#0f1c24",
+      "tertiary": "#162730",
+      "quaternary": "#1d323d"
+    },
+    "border": "#2a424f",
+    "text": {
+      "primary": "rgba(255, 255, 255, 0.90)",
+      "secondary": "rgba(255, 255, 255, 0.70)",
+      "tertiary": "rgba(255, 255, 255, 0.50)"
+    }
+  },
+
+  "gradients": {
+    "primary": "linear-gradient(135deg, #41c9b4 0%, #2ea690 100%)",
+    "accent": "linear-gradient(135deg, #ff6b6b 0%, #f03e3e 100%)",
+    "success": "linear-gradient(135deg, #2ea690 0%, #1e7b65 100%)",
+    "warm": "linear-gradient(135deg, #ff8787 0%, #fa5252 100%)",
+    "hero": "linear-gradient(135deg, #41c9b4 0%, #258975 50%, #1e7b65 100%)",
+    "subtle": "linear-gradient(135deg, #e8f9f6 0%, #c7f2eb 100%)",
+    "glass": "linear-gradient(135deg, rgba(65, 201, 180, 0.1) 0%, rgba(46, 166, 144, 0.05) 100%)",
+    "glassWarm": "linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(240, 62, 62, 0.05) 100%)",
+    "mesh": "radial-gradient(at 40% 20%, rgba(65, 201, 180, 0.4) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(255, 107, 107, 0.3) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(46, 166, 144, 0.3) 0px, transparent 50%)",
+    "meshDark": "radial-gradient(at 40% 20%, rgba(65, 201, 180, 0.2) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(255, 107, 107, 0.15) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(46, 166, 144, 0.15) 0px, transparent 50%)"
+  },
+
+  "shadows": {
+    "glass": "0 8px 32px rgba(0, 0, 0, 0.1)",
+    "glassDark": "0 8px 32px rgba(0, 0, 0, 0.4)",
+    "primary": "0 10px 40px -12px rgba(65, 201, 180, 0.4)",
+    "primaryLg": "0 20px 60px -15px rgba(65, 201, 180, 0.5)",
+    "accent": "0 10px 40px -12px rgba(255, 107, 107, 0.4)",
+    "accentLg": "0 20px 60px -15px rgba(255, 107, 107, 0.5)",
+    "success": "0 10px 40px -12px rgba(46, 166, 144, 0.4)",
+    "soft": "0 2px 8px rgba(8, 19, 26, 0.08)",
+    "softLg": "0 4px 16px rgba(8, 19, 26, 0.12)"
+  },
+
+  "componentExamples": {
+    "buttons": {
+      "primary": {
+        "classes": "bg-gradient-to-r from-primary-400 to-primary-500 hover:from-primary-500 hover:to-primary-600 text-white shadow-primary hover:shadow-primary-lg transition-all duration-200",
+        "utility": "btn-note-primary"
+      },
+      "secondary": {
+        "classes": "bg-transparent text-primary-500 border-2 border-primary-400 hover:bg-primary-50 hover:border-primary-500 transition-all duration-200",
+        "utility": "btn-note-outline"
+      },
+      "accent": {
+        "classes": "bg-gradient-to-r from-accent-500 to-accent-700 hover:from-accent-600 hover:to-accent-800 text-white shadow-accent hover:shadow-accent-lg transition-all duration-200"
+      }
+    },
+    "badges": {
+      "primary": {
+        "classes": "bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border border-primary-200 dark:border-primary-700 px-3 py-1 rounded-full text-sm font-medium",
+        "utility": "badge-note"
+      },
+      "accent": {
+        "classes": "bg-accent-100 dark:bg-accent-900/20 text-accent-700 dark:text-accent-400 border border-accent-200 dark:border-accent-700 px-3 py-1 rounded-full text-sm font-medium",
+        "utility": "badge-accent"
+      }
+    },
+    "cards": {
+      "standard": {
+        "classes": "bg-white dark:bg-dark-bg-tertiary border border-neutral-200 dark:border-dark-border rounded-xl p-6 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-primary transition-all duration-300",
+        "utility": "card-note-hover"
+      },
+      "glass": {
+        "classes": "bg-primary-50/50 dark:bg-primary-900/10 backdrop-blur-lg border border-primary-200/20 dark:border-primary-700/20 rounded-xl p-6",
+        "utility": "glass-note"
+      }
+    },
+    "inputs": {
+      "standard": {
+        "classes": "bg-neutral-50 dark:bg-dark-bg-tertiary border border-neutral-200 dark:border-dark-border focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 text-neutral-900 dark:text-dark-text-primary rounded-lg px-4 py-2 transition-all",
+        "utility": "focus-note"
+      }
+    },
+    "links": {
+      "primary": {
+        "classes": "text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 underline decoration-primary-500/30 hover:decoration-primary-500 transition-all"
+      },
+      "accent": {
+        "classes": "text-accent-500 dark:text-accent-400 hover:text-accent-600 dark:hover:text-accent-300 underline decoration-accent-500/30 hover:decoration-accent-500 transition-all"
+      }
+    }
+  },
+
+  "accessibilityRatios": {
+    "lightMode": {
+      "primary400OnWhite": "3.8:1 (AA Large Text)",
+      "primary500OnWhite": "4.5:1 (AA)",
+      "primary700OnWhite": "5.2:1 (AA)",
+      "neutral900OnWhite": "14.5:1 (AAA)",
+      "neutral700OnWhite": "7.8:1 (AAA)"
+    },
+    "darkMode": {
+      "primary400OnDarkBg": "6.2:1 (AA)",
+      "textPrimaryOnDarkBg": "12.1:1 (AAA)",
+      "textSecondaryOnDarkBg": "8.5:1 (AAA)"
+    }
+  },
+
+  "usageGuidelines": {
+    "primary": {
+      "use": ["Main CTAs", "Brand elements", "Active states", "Primary icons"],
+      "avoid": ["Body text (use 700+ for text)", "Over-saturation (use sparingly)"]
+    },
+    "accent": {
+      "use": ["Secondary CTAs", "Highlights", "New badges", "Attention elements"],
+      "avoid": ["Primary navigation", "Body text", "Overuse (dilutes impact)"]
+    },
+    "neutral": {
+      "use": ["Text hierarchy", "Borders", "Backgrounds", "Dividers"],
+      "avoid": ["Primary buttons", "Hero sections"]
+    },
+    "success": {
+      "use": ["Success messages", "Completed states", "Positive feedback"],
+      "avoid": ["Error states", "Primary CTAs"]
+    },
+    "warning": {
+      "use": ["Warnings", "Cautions", "Important notices"],
+      "avoid": ["Success states", "Primary buttons"]
+    },
+    "danger": {
+      "use": ["Errors", "Destructive actions", "Critical alerts"],
+      "avoid": ["Success states", "Primary CTAs"]
+    }
+  },
+
+  "migrationMap": {
+    "oldToNew": {
+      "#a855f7": "#41c9b4",
+      "#9333ea": "#2ea690",
+      "#7e22ce": "#258975",
+      "#06b6d4": "#ff6b6b",
+      "#0891b2": "#fa5252",
+      "#0e7490": "#f03e3e"
+    },
+    "classRenames": {
+      "bg-primary-500": "bg-primary-400",
+      "bg-accent-500": "bg-accent-500",
+      "text-primary-500": "text-primary-500",
+      "border-primary-500": "border-primary-400",
+      "from-primary-500": "from-primary-400",
+      "to-accent-500": "to-accent-500"
+    }
+  },
+
+  "quickCopyPaste": {
+    "cssVariables": {
+      "light": {
+        "--note-primary": "#41c9b4",
+        "--note-primary-dark": "#2ea690",
+        "--note-success": "#1e7b65",
+        "--note-danger": "#b22323",
+        "--note-caution": "#ac7a2d",
+        "--note-like": "#d13e5c",
+        "--note-surface": "#f5f8fa"
+      },
+      "dark": {
+        "--note-primary": "#41c9b4",
+        "--note-primary-dark": "#2ea690",
+        "--note-success": "#2ea690",
+        "--note-danger": "#ff6b6b",
+        "--note-caution": "#f5c02b",
+        "--note-like": "#e9447a",
+        "--note-surface": "#162730"
+      }
+    },
+    "tailwindUtilities": [
+      "btn-note-primary",
+      "btn-note-outline",
+      "badge-note",
+      "badge-accent",
+      "card-note-hover",
+      "glass-note",
+      "glass-note-strong",
+      "gradient-text",
+      "gradient-text-accent",
+      "text-note-primary",
+      "border-note",
+      "bg-note-subtle",
+      "hover-note",
+      "focus-note"
+    ]
+  }
+}
