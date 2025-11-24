@@ -15,6 +15,29 @@ const nextConfig: NextConfig = {
   },
 
   /**
+   * Experimental Features
+   *
+   * @description Enable serverComponentsExternalPackages for Prisma
+   * This ensures Prisma binaries are included in the deployment
+   */
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', '@prisma/engines'],
+  },
+
+  /**
+   * Webpack Configuration
+   *
+   * @description Exclude Prisma engines from webpack bundling
+   * This prevents build errors and ensures binaries are copied correctly
+   */
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), '@prisma/client', '@prisma/engines'];
+    }
+    return config;
+  },
+
+  /**
    * Security Headers Configuration
    *
    * @description Comprehensive security headers to protect against common web vulnerabilities
