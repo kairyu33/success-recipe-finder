@@ -28,6 +28,8 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.production
+.env.vercel
 
 # vercel
 .vercel
@@ -38,6 +40,5 @@ next-env.d.ts
 
 /lib/generated/prisma
 
-# Backups
+# Backups (contains sensitive data dumps)
 backups/
-scripts/
