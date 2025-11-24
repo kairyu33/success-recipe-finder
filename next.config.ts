@@ -5,6 +5,14 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   /**
+   * Output Mode Configuration
+   *
+   * @description Use standalone mode for better Vercel compatibility
+   * This creates a minimal standalone build with all dependencies
+   */
+  output: 'standalone',
+
+  /**
    * Turbopack Configuration
    *
    * @description Set the Turbopack workspace root to the project directory
@@ -21,7 +29,9 @@ const nextConfig: NextConfig = {
    * outputFileTracingIncludes forces Next.js to include Prisma binaries
    */
   outputFileTracingIncludes: {
-    '/api/**/*': ['./node_modules/.prisma/client/**/*'],
+    '/': ['./node_modules/.prisma/client/**/*', './node_modules/@prisma/engines/**/*'],
+    '/api/**/*': ['./node_modules/.prisma/client/**/*', './node_modules/@prisma/engines/**/*'],
+    '/**/*': ['./node_modules/.prisma/client/**/*'],
   },
 
   /**
