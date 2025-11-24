@@ -15,6 +15,16 @@ const nextConfig: NextConfig = {
   },
 
   /**
+   * Output Configuration
+   *
+   * @description Ensure Prisma files are included in the deployment
+   * outputFileTracingIncludes forces Next.js to include Prisma binaries
+   */
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./node_modules/.prisma/client/**/*'],
+  },
+
+  /**
    * Experimental Features
    *
    * @description Enable serverComponentsExternalPackages for Prisma

@@ -4,7 +4,8 @@
   "description": "Success Recipe Finder - 成功レシピ記事検索システム",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma migrate deploy && prisma generate && next build",
+    "build": "next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",

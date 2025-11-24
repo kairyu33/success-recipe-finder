@@ -1,0 +1,10 @@
+# Don't ignore these important files for Prisma
+!node_modules/.prisma/client
+!prisma
+
+# Standard ignores
+.git
+.env.local
+.env.*.local
+*.log
+.DS_Store
