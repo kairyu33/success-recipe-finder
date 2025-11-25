@@ -8,11 +8,7 @@
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 10,
-      "memory": 1024,
-      "includeFiles": "node_modules/.prisma/client/**"
-    },
-    ".next/server/**/*.js": {
-      "includeFiles": "node_modules/.prisma/client/**"
+      "memory": 1024
     }
   },
   "headers": [
