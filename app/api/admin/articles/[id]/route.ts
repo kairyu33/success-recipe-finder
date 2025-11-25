@@ -1,26 +1,35 @@
+/**
+ * Admin Individual Article API - File-based storage
+ *
+ * @description Handles individual article management for admin panel using JSON file storage
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getArticleById, updateArticle, deleteArticle } from '@/lib/stores/articlesStore';
+import { getAuthSession } from '@/lib/simpleAuth';
 
 /**
  * GET /api/admin/articles/[id]
- * 個別記事を取得
+ *
+ * @description Get a single article by ID (requires authentication)
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // SECURITY: Require authentication for admin operations
+    const session = await getAuthSession();
+
+    if (!session || !session.authenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
-    const article = await prisma.article.findUnique({
-      where: { id },
-      include: {
-        memberships: {
-          include: {
-            membership: true,
-          },
-        },
-      },
-    });
+    const article = await getArticleById(id);
 
     if (!article) {
       return NextResponse.json(
@@ -41,13 +50,24 @@ export async function GET(
 
 /**
  * PUT /api/admin/articles/[id]
- * 記事を更新
+ *
+ * @description Update an article (requires authentication)
  */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // SECURITY: Require authentication for article updates
+    const session = await getAuthSession();
+
+    if (!session || !session.authenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
     const {
@@ -64,9 +84,7 @@ export async function PUT(
     } = body;
 
     // 記事の存在確認
-    const existingArticle = await prisma.article.findUnique({
-      where: { id: id },
-    });
+    const existingArticle = await getArticleById(id);
 
     if (!existingArticle) {
       return NextResponse.json(
@@ -75,62 +93,33 @@ export async function PUT(
       );
     }
 
-    // トランザクションで更新
-    const updatedArticle = await prisma.$transaction(async (tx) => {
-      // 記事を更新
-      const article = await tx.article.update({
-        where: { id: id },
-        data: {
-          title,
-          noteLink,
-          publishedAt: new Date(publishedAt),
-          characterCount,
-          estimatedReadTime,
-          genre,
-          targetAudience,
-          benefit,
-          recommendationLevel,
-        },
+    try {
+      // 記事を更新（membershipIdsを含む）
+      const updatedArticle = await updateArticle(id, {
+        title,
+        noteLink,
+        publishedAt: new Date(publishedAt).toISOString(),
+        characterCount,
+        estimatedReadTime,
+        genre,
+        targetAudience,
+        benefit,
+        recommendationLevel,
+        membershipIds,
       });
 
-      // 既存のメンバーシップ紐づけを削除
-      await tx.articleMembership.deleteMany({
-        where: { articleId: id },
-      });
-
-      // 新しいメンバーシップ紐づけを作成
-      if (membershipIds.length > 0) {
-        await tx.articleMembership.createMany({
-          data: membershipIds.map((membershipId: string) => ({
-            articleId: id,
-            membershipId,
-          })),
-        });
+      return NextResponse.json({ article: updatedArticle });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        return NextResponse.json(
+          { error: 'このnoteリンクは既に登録されています' },
+          { status: 409 }
+        );
       }
-
-      // 更新後の記事を取得
-      return await tx.article.findUnique({
-        where: { id: id },
-        include: {
-          memberships: {
-            include: {
-              membership: true,
-            },
-          },
-        },
-      });
-    });
-
-    return NextResponse.json({ article: updatedArticle });
+      throw error;
+    }
   } catch (error: any) {
     console.error('記事更新エラー:', error);
-
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'このnoteリンクは既に登録されています' },
-        { status: 409 }
-      );
-    }
 
     return NextResponse.json(
       { error: '記事の更新に失敗しました' },
@@ -141,18 +130,28 @@ export async function PUT(
 
 /**
  * DELETE /api/admin/articles/[id]
- * 記事を削除
+ *
+ * @description Delete an article (requires authentication)
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // SECURITY: Require authentication for article deletion
+    const session = await getAuthSession();
+
+    if (!session || !session.authenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
+
     // 記事の存在確認
-    const existingArticle = await prisma.article.findUnique({
-      where: { id: id },
-    });
+    const existingArticle = await getArticleById(id);
 
     if (!existingArticle) {
       return NextResponse.json(
@@ -161,10 +160,15 @@ export async function DELETE(
       );
     }
 
-    // 記事を削除（カスケードでArticleMembershipも削除される）
-    await prisma.article.delete({
-      where: { id: id },
-    });
+    // 記事を削除
+    const deleted = await deleteArticle(id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: '記事の削除に失敗しました' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ message: '記事を削除しました' });
   } catch (error) {

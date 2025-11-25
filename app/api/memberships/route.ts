@@ -1,20 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+/**
+ * Public Memberships API - File-based storage
+ *
+ * @description Handles public membership listing using JSON file storage
+ */
+
+import { NextResponse } from 'next/server';
+import { getMemberships } from '@/lib/stores/membershipsStore';
 
 /**
  * GET /api/memberships
- * メンバーシップ一覧を取得（有効なものだけ）
+ *
+ * @description Get active memberships (public endpoint)
  */
 export async function GET() {
   try {
-    const memberships = await prisma.membership.findMany({
-      where: {
-        isActive: true,
-      },
-      orderBy: {
-        sortOrder: 'asc',
-      },
+    const allMemberships = await getMemberships({
+      sortBy: 'sortOrder',
+      sortOrder: 'asc',
     });
+
+    // Filter only active memberships for public endpoint
+    const memberships = allMemberships.filter(m => m.isActive);
 
     return NextResponse.json({ memberships });
   } catch (error) {

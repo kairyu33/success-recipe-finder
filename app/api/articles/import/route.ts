@@ -1,24 +1,21 @@
 /**
- * CSV Import API Endpoint
+ * CSV Import API Endpoint - File-based storage
  *
- * @description Handles CSV file upload and imports articles into the database with membership associations
- * Ensures note links are unique and prevents duplicate entries (differential import)
+ * @description Handles CSV file upload and imports articles into JSON file storage
+ * Ensures note links are unique and prevents duplicate entries
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { bulkCreateArticles } from '@/lib/stores/articlesStore';
 
 /**
  * Parse CSV data and extract article information with membership IDs
- *
- * @param csvText - CSV file content as text
- * @returns Array of article objects with membership IDs
  */
 function parseCSV(csvText: string): Array<{
   rowNumber: number;
   title: string;
   noteLink: string;
-  publishedAt: Date;
+  publishedAt: string;
   characterCount: number;
   estimatedReadTime: number;
   genre: string;
@@ -66,7 +63,7 @@ function parseCSV(csvText: string): Array<{
           rowNumber: parseInt(fields[0]) || 0,
           title: fields[1],
           noteLink: fields[2],
-          publishedAt: new Date(fields[3]),
+          publishedAt: new Date(fields[3]).toISOString(),
           characterCount: parseInt(fields[4]) || 0,
           estimatedReadTime: parseInt(fields[5]) || 0,
           genre: fields[6] || '',
@@ -94,9 +91,6 @@ function parseCSV(csvText: string): Array<{
  *
  * @description Import articles from CSV file
  * Performs differential import - skips duplicate entries based on noteLink
- * Automatically creates article-membership associations
- *
- * @returns JSON response with import statistics (imported, skipped, errors)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -105,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: 'ファイルが指定されていません' },
+        { error: 'No file provided' },
         { status: 400 }
       );
     }
@@ -121,98 +115,35 @@ export async function POST(request: NextRequest) {
 
     if (articles.length === 0) {
       return NextResponse.json(
-        { error: 'CSVに有効な記事データが見つかりませんでした' },
+        { error: 'No valid articles found in CSV' },
         { status: 400 }
       );
     }
 
-    // Import articles with differential checking
-    let imported = 0;
-    let skipped = 0;
-    const errors: string[] = [];
-
-    for (const articleData of articles) {
-      try {
-        // Check if article already exists (differential import)
-        const existing = await prisma.article.findUnique({
-          where: { noteLink: articleData.noteLink }
-        });
-
-        if (existing) {
-          skipped++;
-          continue; // Skip duplicate
-        }
-
-        // Extract membership IDs
-        const { membershipIds, ...articleFields } = articleData;
-
-        // Create new article
-        const article = await prisma.article.create({
-          data: articleFields
-        });
-
-        // Create article-membership associations if membership IDs are provided
-        if (membershipIds.length > 0) {
-          // Validate membership IDs exist
-          const validMemberships = await prisma.membership.findMany({
-            where: {
-              id: {
-                in: membershipIds
-              }
-            },
-            select: { id: true }
-          });
-
-          const validMembershipIds = validMemberships.map(m => m.id);
-
-          // Create associations only for valid membership IDs
-          if (validMembershipIds.length > 0) {
-            await prisma.articleMembership.createMany({
-              data: validMembershipIds.map(membershipId => ({
-                articleId: article.id,
-                membershipId,
-              })),
-            });
-          }
-
-          // Warn about invalid membership IDs
-          const invalidIds = membershipIds.filter(id => !validMembershipIds.includes(id));
-          if (invalidIds.length > 0) {
-            errors.push(`記事「${article.title}」: 無効なメンバーシップID: ${invalidIds.join(', ')}`);
-          }
-        }
-
-        imported++;
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        errors.push(`「${articleData.title}」のインポートに失敗: ${errorMsg}`);
-        skipped++;
-      }
-    }
+    // Import articles with duplicate checking
+    const result = await bulkCreateArticles(articles);
 
     return NextResponse.json({
       success: true,
       total: articles.length,
-      imported,
-      skipped,
-      errors: errors.length > 0 ? errors : undefined
+      imported: result.imported,
+      skipped: result.skipped,
+      errors: result.errors.length > 0 ? result.errors : undefined
     });
 
   } catch (error) {
     console.error('CSV import error:', error);
 
-    const errorMsg = error instanceof Error ? error.message : String(error);
-
-    // Don't expose detailed error in production
+    // Don't expose error details in production
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json(
-        { error: 'CSVのインポートに失敗しました' },
+        { error: 'Failed to import CSV' },
         { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { error: 'CSVのインポートに失敗しました', details: errorMsg },
+      { error: 'Failed to import CSV', details: String(error) },
       { status: 500 }
     );
   }

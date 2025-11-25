@@ -1,23 +1,34 @@
+/**
+ * Admin Articles API - File-based storage
+ *
+ * @description Handles article management for admin panel using JSON file storage
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getArticles, createArticle } from '@/lib/stores/articlesStore';
+import { getAuthSession } from '@/lib/simpleAuth';
 
 /**
  * GET /api/admin/articles
- * 記事一覧を取得
+ *
+ * @description Fetch all articles for admin management
  */
 export async function GET() {
   try {
-    const articles = await prisma.article.findMany({
-      include: {
-        memberships: {
-          include: {
-            membership: true,
-          },
-        },
-      },
-      orderBy: {
-        publishedAt: 'desc',
-      },
+    // SECURITY: Require authentication for admin operations
+    const session = await getAuthSession();
+
+    if (!session || !session.authenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const { articles } = await getArticles({
+      sortBy: 'publishedAt',
+      sortOrder: 'desc',
+      limit: 1000,
     });
 
     return NextResponse.json({ articles });
@@ -32,10 +43,21 @@ export async function GET() {
 
 /**
  * POST /api/admin/articles
- * 新しい記事を作成
+ *
+ * @description Create a new article (requires authentication)
  */
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Require authentication for article creation
+    const session = await getAuthSession();
+
+    if (!session || !session.authenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
       title,
@@ -58,61 +80,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 記事を作成
-    const article = await prisma.article.create({
-      data: {
-        rowNumber: 0, // 一時的に0を設定
+    try {
+      // 記事を作成
+      const article = await createArticle({
         title,
         noteLink,
-        publishedAt: new Date(publishedAt),
+        publishedAt: new Date(publishedAt).toISOString(),
         characterCount: characterCount || 0,
         estimatedReadTime: estimatedReadTime || 0,
         genre: genre || '',
         targetAudience: targetAudience || '',
         benefit: benefit || '',
         recommendationLevel: recommendationLevel || '',
-      },
-    });
-
-    // 行番号を設定（IDをベースに）
-    await prisma.article.update({
-      where: { id: article.id },
-      data: { rowNumber: parseInt(article.id.slice(-8), 36) % 1000000 },
-    });
-
-    // メンバーシップとの紐づけ
-    if (membershipIds.length > 0) {
-      await prisma.articleMembership.createMany({
-        data: membershipIds.map((membershipId: string) => ({
-          articleId: article.id,
-          membershipId,
-        })),
+        membershipIds: membershipIds || [],
       });
+
+      return NextResponse.json({ article }, { status: 201 });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        return NextResponse.json(
+          { error: 'このnoteリンクは既に登録されています' },
+          { status: 409 }
+        );
+      }
+      throw error;
     }
-
-    // 作成した記事を再取得（メンバーシップ情報を含む）
-    const createdArticle = await prisma.article.findUnique({
-      where: { id: article.id },
-      include: {
-        memberships: {
-          include: {
-            membership: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({ article: createdArticle }, { status: 201 });
   } catch (error: any) {
     console.error('記事作成エラー:', error);
-
-    // ユニーク制約違反のエラー処理
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'このnoteリンクは既に登録されています' },
-        { status: 409 }
-      );
-    }
 
     return NextResponse.json(
       { error: '記事の作成に失敗しました' },

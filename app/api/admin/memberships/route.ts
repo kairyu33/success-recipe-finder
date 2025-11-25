@@ -1,23 +1,33 @@
+/**
+ * Admin Memberships API - File-based storage
+ *
+ * @description Handles membership management for admin panel using JSON file storage
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getMemberships, createMembership } from '@/lib/stores/membershipsStore';
+import { getAuthSession } from '@/lib/simpleAuth';
 
 /**
  * GET /api/admin/memberships
- * メンバーシップ一覧を取得
+ *
+ * @description Fetch all memberships for admin management
  */
 export async function GET() {
   try {
-    const memberships = await prisma.membership.findMany({
-      include: {
-        articles: {
-          include: {
-            article: true,
-          },
-        },
-      },
-      orderBy: {
-        sortOrder: 'asc',
-      },
+    // SECURITY: Require authentication for admin operations
+    const session = await getAuthSession();
+
+    if (!session || !session.authenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const memberships = await getMemberships({
+      sortBy: 'sortOrder',
+      sortOrder: 'asc',
     });
 
     return NextResponse.json({ memberships });
@@ -32,10 +42,21 @@ export async function GET() {
 
 /**
  * POST /api/admin/memberships
- * 新しいメンバーシップを作成
+ *
+ * @description Create a new membership (requires authentication)
  */
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Require authentication for membership creation
+    const session = await getAuthSession();
+
+    if (!session || !session.authenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { name, description, color, sortOrder, isActive = true } = body;
 
@@ -47,28 +68,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // メンバーシップを作成
-    const membership = await prisma.membership.create({
-      data: {
+    try {
+      // メンバーシップを作成
+      const membership = await createMembership({
         name,
-        description,
-        color,
+        description: description || '',
+        color: color || '',
         sortOrder: sortOrder ?? 0,
         isActive,
-      },
-    });
+      });
 
-    return NextResponse.json({ membership }, { status: 201 });
+      return NextResponse.json({ membership }, { status: 201 });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        return NextResponse.json(
+          { error: 'このメンバーシップ名は既に登録されています' },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
   } catch (error: any) {
     console.error('メンバーシップ作成エラー:', error);
-
-    // ユニーク制約違反のエラー処理
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'このメンバーシップ名は既に登録されています' },
-        { status: 409 }
-      );
-    }
 
     return NextResponse.json(
       { error: 'メンバーシップの作成に失敗しました' },

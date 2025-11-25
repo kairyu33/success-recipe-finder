@@ -42,3 +42,7 @@ next-env.d.ts
 
 # Backups (contains sensitive data dumps)
 backups/
+
+# Local development data
+/data/
+test-import.csv
