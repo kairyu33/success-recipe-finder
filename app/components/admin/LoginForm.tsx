@@ -5,7 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ADMIN_PASSWORD, MESSAGES } from '@/lib/constants';
+import { MESSAGES } from '@/lib/constants';
 
 type LoginFormProps = {
   onSuccess: () => void;
@@ -14,15 +14,33 @@ type LoginFormProps = {
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
 
-    if (password === ADMIN_PASSWORD) {
-      setError('');
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || MESSAGES.ERROR.AUTH_FAILED);
+        setLoading(false);
+        return;
+      }
+
+      // ログイン成功
       onSuccess();
-    } else {
+    } catch (err) {
       setError(MESSAGES.ERROR.AUTH_FAILED);
+      setLoading(false);
     }
   };
 
@@ -54,15 +72,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium disabled:bg-blue-300 disabled:cursor-not-allowed"
           >
-            ログイン
+            {loading ? 'ログイン中...' : 'ログイン'}
           </button>
         </form>
-
-        <div className="mt-6 pt-6 border-t text-center text-sm text-gray-500">
-          <p>開発環境パスワード: {ADMIN_PASSWORD}</p>
-        </div>
       </div>
     </div>
   );
