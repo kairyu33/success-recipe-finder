@@ -11,11 +11,13 @@ import {
   CSVUpload,
   ArticleForm,
   ArticleList,
+  ArticleFilters,
   MembershipForm,
   MembershipList,
 } from '@/app/components/admin';
+import type { ArticleFiltersState } from '@/app/components/admin/ArticleFilters';
 import {
-  fetchAdminArticles,
+  fetchArticles,
   fetchAdminMemberships,
   createArticle,
   updateArticle,
@@ -42,9 +44,21 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('articles');
 
   // データ状態
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
+  const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // フィルタ状態
+  const [filters, setFilters] = useState<ArticleFiltersState>({
+    search: '',
+    genres: [],
+    targetAudiences: [],
+    recommendationLevels: [],
+    membershipIds: [],
+    sortBy: 'publishedAt',
+    sortOrder: 'desc',
+  });
 
   // 記事フォーム状態
   const [articleForm, setArticleForm] = useState<ArticleFormData>({
@@ -75,22 +89,30 @@ export default function AdminPage() {
   );
   const [showMembershipForm, setShowMembershipForm] = useState(false);
 
-  // データ取得
+  // 初回データ取得
   useEffect(() => {
     if (isAuthenticated) {
-      fetchData();
+      fetchInitialData();
     }
   }, [isAuthenticated]);
 
-  const fetchData = async () => {
+  // フィルタ変更時に記事を再取得
+  useEffect(() => {
+    if (isAuthenticated && allArticles.length > 0) {
+      fetchFilteredArticles();
+    }
+  }, [filters]);
+
+  const fetchInitialData = async () => {
     setLoading(true);
     try {
-      const [articlesData, membershipsData] = await Promise.all([
-        fetchAdminArticles(),
+      const [allArticlesData, membershipsData] = await Promise.all([
+        fetchArticles({ limit: 10000 }), // 全記事取得
         fetchAdminMemberships(),
       ]);
 
-      setArticles(articlesData);
+      setAllArticles(allArticlesData);
+      setFilteredArticles(allArticlesData);
       setMemberships(membershipsData);
     } catch (error) {
       console.error('データ取得エラー:', error);
@@ -98,6 +120,50 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchFilteredArticles = async () => {
+    setLoading(true);
+    try {
+      const articlesData = await fetchArticles({
+        search: filters.search || undefined,
+        genres: filters.genres.length > 0 ? filters.genres : undefined,
+        targetAudiences: filters.targetAudiences.length > 0 ? filters.targetAudiences : undefined,
+        recommendationLevels: filters.recommendationLevels.length > 0 ? filters.recommendationLevels : undefined,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+        limit: 1000,
+      });
+
+      setFilteredArticles(articlesData);
+    } catch (error) {
+      console.error('記事取得エラー:', error);
+      toast.error(MESSAGES.ERROR.DATA_FETCH_FAILED);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchData = async () => {
+    await fetchInitialData();
+  };
+
+  // 利用可能な選択肢を計算
+  const availableGenres = Array.from(new Set(allArticles.map(a => a.genre).filter(Boolean))).sort();
+  const availableTargetAudiences = Array.from(new Set(allArticles.map(a => a.targetAudience).filter(Boolean))).sort();
+  const availableRecommendationLevels = Array.from(new Set(allArticles.map(a => a.recommendationLevel).filter(Boolean))).sort();
+
+  // フィルタリセット
+  const handleResetFilters = () => {
+    setFilters({
+      search: '',
+      genres: [],
+      targetAudiences: [],
+      recommendationLevels: [],
+      membershipIds: [],
+      sortBy: 'publishedAt',
+      sortOrder: 'desc',
+    });
   };
 
   // 記事操作
@@ -267,7 +333,7 @@ export default function AdminPage() {
                 </svg>
               </div>
               <div>
-                <div className="text-2xl font-bold text-neutral-800">{articles.length}</div>
+                <div className="text-2xl font-bold text-neutral-800">{allArticles.length}</div>
                 <div className="text-sm text-neutral-500">記事</div>
               </div>
             </div>
@@ -335,6 +401,25 @@ export default function AdminPage() {
               <CSVUpload onSuccess={fetchData} />
             </div>
 
+            {/* Filters */}
+            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold gradient-text mb-2">記事を検索・フィルタ</h2>
+                <p className="text-neutral-600">
+                  検索やフィルタを使って目的の記事を素早く見つけられます（{filteredArticles.length}件 / {allArticles.length}件）
+                </p>
+              </div>
+              <ArticleFilters
+                filters={filters}
+                memberships={memberships}
+                availableGenres={availableGenres}
+                availableTargetAudiences={availableTargetAudiences}
+                availableRecommendationLevels={availableRecommendationLevels}
+                onChange={setFilters}
+                onReset={handleResetFilters}
+              />
+            </div>
+
             {/* New Article Button */}
             <div>
               <button
@@ -379,7 +464,7 @@ export default function AdminPage() {
             {/* Articles List */}
             <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
               <ArticleList
-                articles={articles}
+                articles={filteredArticles}
                 onEdit={handleArticleEdit}
                 onDelete={handleArticleDelete}
               />

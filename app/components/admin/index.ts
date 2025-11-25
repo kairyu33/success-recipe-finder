@@ -6,5 +6,6 @@ export { LoginForm } from './LoginForm';
 export { CSVUpload } from './CSVUpload';
 export { ArticleForm } from './ArticleForm';
 export { ArticleList } from './ArticleList';
+export { ArticleFilters } from './ArticleFilters';
 export { MembershipForm } from './MembershipForm';
 export { MembershipList } from './MembershipList';
