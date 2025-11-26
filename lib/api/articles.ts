@@ -9,7 +9,7 @@ import type { Article, ArticleFormData, ImportResult } from '@/types';
  */
 export async function fetchArticles(params?: {
   search?: string;
-  membershipId?: string;
+  membershipIds?: string[];
   genres?: string[];
   targetAudiences?: string[];
   recommendationLevels?: string[];
@@ -20,7 +20,9 @@ export async function fetchArticles(params?: {
   const searchParams = new URLSearchParams();
 
   if (params?.search) searchParams.append('search', params.search);
-  if (params?.membershipId) searchParams.append('membershipId', params.membershipId);
+  if (params?.membershipIds && params.membershipIds.length > 0) {
+    searchParams.append('membershipIds', params.membershipIds.join(','));
+  }
   if (params?.genres && params.genres.length > 0) {
     searchParams.append('genres', params.genres.join(','));
   }

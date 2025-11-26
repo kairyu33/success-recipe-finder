@@ -17,7 +17,7 @@ import { getArticles } from '@/lib/stores/articlesStore';
  * - genres: Filter by genres (comma-separated, optional)
  * - targetAudiences: Filter by target audiences (comma-separated, optional)
  * - recommendationLevels: Filter by recommendation levels (comma-separated, optional)
- * - membershipId: Filter by membership ID (optional)
+ * - membershipIds: Filter by membership IDs (comma-separated, optional)
  * - sortBy: Sort field (publishedAt, characterCount, estimatedReadTime, default: publishedAt)
  * - sortOrder: Sort order (asc, desc, default: desc)
  * - limit: Number of results to return (default: 100)
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const genresParam = searchParams.get('genres') || '';
     const targetAudiencesParam = searchParams.get('targetAudiences') || '';
     const recommendationLevelsParam = searchParams.get('recommendationLevels') || '';
-    const membershipId = searchParams.get('membershipId') || '';
+    const membershipIdsParam = searchParams.get('membershipIds') || '';
     const sortBy = searchParams.get('sortBy') || 'publishedAt';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
     const limit = parseInt(searchParams.get('limit') || '100');
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const genres = genresParam ? genresParam.split(',').filter(Boolean) : [];
     const targetAudiences = targetAudiencesParam ? targetAudiencesParam.split(',').filter(Boolean) : [];
     const recommendationLevels = recommendationLevelsParam ? recommendationLevelsParam.split(',').filter(Boolean) : [];
-    const membershipIds = membershipId ? [membershipId] : [];
+    const membershipIds = membershipIdsParam ? membershipIdsParam.split(',').filter(Boolean) : [];
 
     // Fetch articles from storage
     const { articles, total } = await getArticles({

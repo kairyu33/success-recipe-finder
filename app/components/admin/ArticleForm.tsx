@@ -4,11 +4,14 @@
 
 'use client';
 
+import { useState } from 'react';
 import type { ArticleFormData, Membership } from '@/types';
 
 type ArticleFormProps = {
   formData: ArticleFormData;
   memberships: Membership[];
+  availableGenres: string[];
+  availableBenefits: string[];
   isEditing: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onChange: (data: Partial<ArticleFormData>) => void;
@@ -18,11 +21,56 @@ type ArticleFormProps = {
 export function ArticleForm({
   formData,
   memberships,
+  availableGenres,
+  availableBenefits,
   isEditing,
   onSubmit,
   onChange,
   onCancel,
 }: ArticleFormProps) {
+  const [customBenefit, setCustomBenefit] = useState('');
+  const [customGenre, setCustomGenre] = useState('');
+  const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
+
+  // 選択中のメリットを配列として取得
+  const selectedBenefits = formData.benefit
+    ? formData.benefit.split(',').map((b) => b.trim()).filter(Boolean)
+    : [];
+
+  // メリット追加
+  const handleAddBenefit = () => {
+    const newBenefit = customBenefit.trim();
+    if (newBenefit && !selectedBenefits.includes(newBenefit)) {
+      onChange({ benefit: [...selectedBenefits, newBenefit].join(', ') });
+      setCustomBenefit('');
+    }
+  };
+
+  // メリット削除
+  const handleRemoveBenefit = (benefitToRemove: string) => {
+    const newBenefits = selectedBenefits.filter((b) => b !== benefitToRemove);
+    onChange({ benefit: newBenefits.join(', ') });
+  };
+
+  // メリット選択トグル
+  const handleToggleBenefit = (benefit: string) => {
+    if (selectedBenefits.includes(benefit)) {
+      handleRemoveBenefit(benefit);
+    } else {
+      onChange({ benefit: [...selectedBenefits, benefit].join(', ') });
+    }
+  };
+
+  // カスタムジャンル追加
+  const handleAddCustomGenre = () => {
+    const newGenre = customGenre.trim();
+    if (newGenre) {
+      onChange({ genre: newGenre });
+      setCustomGenre('');
+      setShowCustomGenreInput(false);
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow mb-6">
       <h2 className="text-xl font-bold mb-4">
@@ -98,12 +146,79 @@ export function ArticleForm({
 
           <div>
             <label className="block text-sm font-medium mb-2">ジャンル</label>
-            <input
-              type="text"
-              value={formData.genre}
-              onChange={(e) => onChange({ genre: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="space-y-2">
+              {/* 既存のジャンルから選択 */}
+              <div className="flex flex-wrap gap-2">
+                {availableGenres.map((genre) => (
+                  <button
+                    key={genre}
+                    type="button"
+                    onClick={() => onChange({ genre })}
+                    className={`px-4 py-2 border rounded-lg text-sm transition-all ${
+                      formData.genre === genre
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white hover:bg-gray-100 border-gray-300'
+                    }`}
+                  >
+                    {genre}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setShowCustomGenreInput(!showCustomGenreInput)}
+                  className="px-4 py-2 border-2 border-dashed border-green-400 rounded-lg text-sm text-green-700 hover:bg-green-50 transition-all"
+                >
+                  + 新しいジャンル
+                </button>
+              </div>
+
+              {/* カスタムジャンル入力 */}
+              {showCustomGenreInput && (
+                <div className="flex gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <input
+                    type="text"
+                    value={customGenre}
+                    onChange={(e) => setCustomGenre(e.target.value)}
+                    placeholder="新しいジャンル名を入力..."
+                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomGenre();
+                      }
+                      if (e.key === 'Escape') {
+                        setShowCustomGenreInput(false);
+                        setCustomGenre('');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomGenre}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  >
+                    追加
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomGenreInput(false);
+                      setCustomGenre('');
+                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              )}
+
+              {/* 選択中のジャンルを表示 */}
+              {formData.genre && (
+                <div className="text-sm text-gray-600">
+                  選択中: <span className="font-semibold text-blue-600">{formData.genre}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -134,14 +249,107 @@ export function ArticleForm({
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium mb-2">
-              読者メリット
+              読者メリット（複数選択可）
             </label>
-            <textarea
-              value={formData.benefit}
-              onChange={(e) => onChange({ benefit: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              rows={3}
-            />
+            <div className="space-y-3">
+              {/* 選択されたメリット表示 */}
+              {selectedBenefits.length > 0 && (
+                <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+                  <div className="text-xs font-semibold text-blue-900 mb-2">
+                    選択中のメリット:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedBenefits.map((benefit) => (
+                      <div
+                        key={benefit}
+                        className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded-lg text-sm"
+                      >
+                        <span>{benefit}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBenefit(benefit)}
+                          className="hover:bg-blue-700 rounded-full p-0.5"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 既存のメリットから選択 */}
+              <div className="p-4 border rounded-lg bg-gray-50">
+                <div className="text-xs font-semibold text-gray-700 mb-2">
+                  既存のメリットから選択:
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {availableBenefits.map((benefit) => {
+                    const isSelected = selectedBenefits.includes(benefit);
+                    return (
+                      <button
+                        key={benefit}
+                        type="button"
+                        onClick={() => handleToggleBenefit(benefit)}
+                        className={`px-3 py-2 border rounded-lg text-sm transition-all ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white hover:bg-gray-100 border-gray-300'
+                        }`}
+                      >
+                        {benefit}
+                      </button>
+                    );
+                  })}
+                  {availableBenefits.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      まだメリットが登録されていません。下から追加してください。
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* カスタムメリット追加 */}
+              <div className="p-4 border rounded-lg bg-green-50">
+                <div className="text-xs font-semibold text-green-900 mb-2">
+                  新しいメリットを追加:
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customBenefit}
+                    onChange={(e) => setCustomBenefit(e.target.value)}
+                    placeholder="例: 初心者でもわかりやすい"
+                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddBenefit();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddBenefit}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  >
+                    追加
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="md:col-span-2">

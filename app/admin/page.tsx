@@ -10,7 +10,7 @@ import {
   LoginForm,
   CSVUpload,
   ArticleForm,
-  ArticleList,
+  ArticleListCompact,
   ArticleFilters,
   MembershipForm,
   MembershipList,
@@ -153,6 +153,17 @@ export default function AdminPage() {
   const availableTargetAudiences = Array.from(new Set(allArticles.map(a => a.targetAudience).filter(Boolean))).sort();
   const availableRecommendationLevels = Array.from(new Set(allArticles.map(a => a.recommendationLevel).filter(Boolean))).sort();
 
+  // 読者メリットの選択肢を計算（カンマ区切りから抽出）
+  const availableBenefits = Array.from(
+    new Set(
+      allArticles
+        .map(a => a.benefit)
+        .filter(Boolean)
+        .flatMap(b => b.split(',').map(item => item.trim()))
+        .filter(Boolean)
+    )
+  ).sort();
+
   // フィルタリセット
   const handleResetFilters = () => {
     setFilters({
@@ -179,7 +190,13 @@ export default function AdminPage() {
         toast.success(MESSAGES.SUCCESS.ARTICLE_CREATED);
       }
       resetArticleForm();
-      fetchData();
+
+      // 全記事データを再取得してフィルタを再適用
+      const allArticlesData = await fetchArticles({ limit: 10000 });
+      setAllArticles(allArticlesData);
+
+      // 現在のフィルタ設定で記事を再取得
+      await fetchFilteredArticles();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : MESSAGES.ERROR.OPERATION_FAILED;
@@ -202,6 +219,11 @@ export default function AdminPage() {
     });
     setEditingArticleId(article.id);
     setShowArticleForm(true);
+
+    // フォームが表示される位置にスクロール
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   };
 
   const handleArticleDelete = async (id: string) => {
@@ -210,7 +232,45 @@ export default function AdminPage() {
     try {
       await deleteArticle(id);
       toast.success(MESSAGES.SUCCESS.ARTICLE_DELETED);
-      fetchData();
+
+      // 全記事データを再取得してフィルタを再適用
+      const allArticlesData = await fetchArticles({ limit: 10000 });
+      setAllArticles(allArticlesData);
+
+      // 現在のフィルタ設定で記事を再取得
+      await fetchFilteredArticles();
+    } catch (error) {
+      toast.error(MESSAGES.ERROR.OPERATION_FAILED);
+    }
+  };
+
+  const handleMembershipToggle = async (articleId: string, membershipId: string) => {
+    try {
+      // Find the article to toggle
+      const article = allArticles.find((a) => a.id === articleId);
+      if (!article) return;
+
+      // Get current membership IDs
+      const currentMembershipIds = article.memberships.map((m) => m.membership.id);
+
+      // Toggle the membership ID
+      const newMembershipIds = currentMembershipIds.includes(membershipId)
+        ? currentMembershipIds.filter((id) => id !== membershipId)
+        : [...currentMembershipIds, membershipId];
+
+      // Update the article
+      await updateArticle(articleId, {
+        ...article,
+        membershipIds: newMembershipIds,
+      });
+
+      // 全記事データを再取得してフィルタを再適用
+      const allArticlesData = await fetchArticles({ limit: 10000 });
+      setAllArticles(allArticlesData);
+
+      // 現在のフィルタ設定で記事を再取得
+      await fetchFilteredArticles();
+      toast.success('メンバーシップを更新しました');
     } catch (error) {
       toast.error(MESSAGES.ERROR.OPERATION_FAILED);
     }
@@ -401,25 +461,6 @@ export default function AdminPage() {
               <CSVUpload onSuccess={fetchData} />
             </div>
 
-            {/* Filters */}
-            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold gradient-text mb-2">記事を検索・フィルタ</h2>
-                <p className="text-neutral-600">
-                  検索やフィルタを使って目的の記事を素早く見つけられます（{filteredArticles.length}件 / {allArticles.length}件）
-                </p>
-              </div>
-              <ArticleFilters
-                filters={filters}
-                memberships={memberships}
-                availableGenres={availableGenres}
-                availableTargetAudiences={availableTargetAudiences}
-                availableRecommendationLevels={availableRecommendationLevels}
-                onChange={setFilters}
-                onReset={handleResetFilters}
-              />
-            </div>
-
             {/* New Article Button */}
             <div>
               <button
@@ -453,6 +494,8 @@ export default function AdminPage() {
                 <ArticleForm
                   formData={articleForm}
                   memberships={memberships}
+                  availableGenres={availableGenres}
+                  availableBenefits={availableBenefits}
                   isEditing={!!editingArticleId}
                   onSubmit={handleArticleSubmit}
                   onChange={(data) => setArticleForm({ ...articleForm, ...data })}
@@ -461,13 +504,47 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Articles List */}
-            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
-              <ArticleList
-                articles={filteredArticles}
-                onEdit={handleArticleEdit}
-                onDelete={handleArticleDelete}
-              />
+            {/* 2-Column Layout: Filters (Left) + Articles List (Right) */}
+            <div className="grid grid-cols-12 gap-8">
+              {/* Left Column: Filters */}
+              <div className="col-span-12 lg:col-span-4">
+                <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg sticky top-8">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold gradient-text mb-2">記事を検索・フィルタ</h2>
+                    <p className="text-neutral-600">
+                      検索やフィルタを使って目的の記事を素早く見つけられます
+                    </p>
+                    <div className="mt-2 text-sm font-semibold text-primary-600">
+                      {filteredArticles.length}件 / {allArticles.length}件
+                    </div>
+                  </div>
+                  <ArticleFilters
+                    filters={filters}
+                    memberships={memberships}
+                    availableGenres={availableGenres}
+                    availableTargetAudiences={availableTargetAudiences}
+                    availableRecommendationLevels={availableRecommendationLevels}
+                    onChange={setFilters}
+                    onReset={handleResetFilters}
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Articles List */}
+              <div className="col-span-12 lg:col-span-8">
+                <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold gradient-text">記事一覧</h2>
+                  </div>
+                  <ArticleListCompact
+                    articles={filteredArticles}
+                    memberships={memberships}
+                    onEdit={handleArticleEdit}
+                    onDelete={handleArticleDelete}
+                    onMembershipToggle={handleMembershipToggle}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}

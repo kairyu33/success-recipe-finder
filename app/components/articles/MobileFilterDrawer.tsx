@@ -18,11 +18,14 @@ type MobileFilterDrawerProps = {
   onTargetAudiencesChange: (values: string[]) => void;
   selectedRecommendationLevels: string[];
   onRecommendationLevelsChange: (values: string[]) => void;
+  selectedMembershipIds: string[];
+  onMembershipIdsChange: (values: string[]) => void;
   sortValue: string;
   onSortChange: (value: string) => void;
   genreOptions: Array<{ value: string; label: string }>;
   targetAudienceOptions: Array<{ value: string; label: string }>;
   recommendationLevelOptions: Array<{ value: string; label: string }>;
+  membershipOptions: Array<{ value: string; label: string }>;
   hasActiveFilters: boolean;
   onClearAll: () => void;
 };

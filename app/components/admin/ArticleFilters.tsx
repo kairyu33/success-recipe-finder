@@ -88,27 +88,17 @@ export function ArticleFilters({
   return (
     <div className="space-y-6">
       {/* 検索バー */}
-      <div className="relative">
+      <div>
+        <label className="block text-sm font-semibold text-neutral-700 mb-2">
+          検索
+        </label>
         <input
           type="text"
           value={filters.search}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="タイトル、ジャンル、メリットで検索..."
-          className="w-full px-4 py-3 pl-12 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
+          className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all"
         />
-        <svg
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
       </div>
 
       {/* フィルタとソート */}
@@ -238,21 +228,6 @@ export function ArticleFilters({
               onClick={handleSortOrderToggle}
               className="w-full px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-lg flex items-center justify-center gap-2 transition-colors"
             >
-              <svg
-                className={`w-4 h-4 transition-transform ${
-                  filters.sortOrder === 'desc' ? 'rotate-180' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 15l7-7 7 7"
-                />
-              </svg>
               <span className="text-sm font-medium">
                 {filters.sortOrder === 'asc' ? '昇順' : '降順'}
               </span>

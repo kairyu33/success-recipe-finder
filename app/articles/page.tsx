@@ -5,23 +5,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchArticles } from '@/lib/api';
+import { fetchArticles, fetchAdminMemberships } from '@/lib/api';
 import {
   ArticleCard,
   FilterSection,
   MobileFilterDrawer,
 } from '@/app/components/articles';
-import type { Article } from '@/types';
+import type { Article, Membership } from '@/types';
 import { useIsMobile } from '@/app/hooks/useMediaQuery';
 
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [allArticles, setAllArticles] = useState<Article[]>([]);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedTargetAudiences, setSelectedTargetAudiences] = useState<string[]>([]);
   const [selectedRecommendationLevels, setSelectedRecommendationLevels] = useState<string[]>([]);
+  const [selectedMembershipIds, setSelectedMembershipIds] = useState<string[]>([]);
   const [sortValue, setSortValue] = useState('publishedAt-desc');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -30,12 +32,13 @@ export default function ArticlesPage() {
   // 初期データ取得
   useEffect(() => {
     loadAllArticles();
+    loadMemberships();
   }, []);
 
   // フィルター・ソート変更時に記事を再取得
   useEffect(() => {
     loadArticles();
-  }, [selectedGenres, selectedTargetAudiences, selectedRecommendationLevels, search, sortValue]);
+  }, [selectedGenres, selectedTargetAudiences, selectedRecommendationLevels, selectedMembershipIds, search, sortValue]);
 
   // フィルター選択肢用に全記事を取得
   const loadAllArticles = async () => {
@@ -44,6 +47,16 @@ export default function ArticlesPage() {
       setAllArticles(data);
     } catch (error) {
       console.error('記事取得エラー:', error);
+    }
+  };
+
+  // メンバーシップを取得
+  const loadMemberships = async () => {
+    try {
+      const data = await fetchAdminMemberships();
+      setMemberships(data);
+    } catch (error) {
+      console.error('メンバーシップ取得エラー:', error);
     }
   };
 
@@ -57,6 +70,7 @@ export default function ArticlesPage() {
         genres: selectedGenres,
         targetAudiences: selectedTargetAudiences,
         recommendationLevels: selectedRecommendationLevels,
+        membershipIds: selectedMembershipIds,
         sortBy,
         sortOrder,
         limit: 1000,
@@ -83,10 +97,16 @@ export default function ArticlesPage() {
   ).map((level) => ({ value: level, label: level }))
     .sort((a, b) => b.value.localeCompare(a.value));
 
+  const membershipOptions = memberships
+    .filter((m) => m.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((membership) => ({ value: membership.id, label: membership.name }));
+
   const hasActiveFilters =
     selectedGenres.length > 0 ||
     selectedTargetAudiences.length > 0 ||
     selectedRecommendationLevels.length > 0 ||
+    selectedMembershipIds.length > 0 ||
     search.length > 0;
 
   const clearAllFilters = () => {
@@ -94,6 +114,7 @@ export default function ArticlesPage() {
     setSelectedGenres([]);
     setSelectedTargetAudiences([]);
     setSelectedRecommendationLevels([]);
+    setSelectedMembershipIds([]);
   };
 
   const filterProps = {
@@ -105,11 +126,14 @@ export default function ArticlesPage() {
     onTargetAudiencesChange: setSelectedTargetAudiences,
     selectedRecommendationLevels,
     onRecommendationLevelsChange: setSelectedRecommendationLevels,
+    selectedMembershipIds,
+    onMembershipIdsChange: setSelectedMembershipIds,
     sortValue,
     onSortChange: setSortValue,
     genreOptions,
     targetAudienceOptions,
     recommendationLevelOptions,
+    membershipOptions,
     hasActiveFilters,
     onClearAll: clearAllFilters,
   };

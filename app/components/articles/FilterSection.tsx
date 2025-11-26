@@ -17,11 +17,14 @@ type FilterSectionProps = {
   onTargetAudiencesChange: (values: string[]) => void;
   selectedRecommendationLevels: string[];
   onRecommendationLevelsChange: (values: string[]) => void;
+  selectedMembershipIds: string[];
+  onMembershipIdsChange: (values: string[]) => void;
   sortValue: string;
   onSortChange: (value: string) => void;
   genreOptions: Array<{ value: string; label: string }>;
   targetAudienceOptions: Array<{ value: string; label: string }>;
   recommendationLevelOptions: Array<{ value: string; label: string }>;
+  membershipOptions: Array<{ value: string; label: string }>;
   hasActiveFilters: boolean;
   onClearAll: () => void;
 };
@@ -35,11 +38,14 @@ export function FilterSection({
   onTargetAudiencesChange,
   selectedRecommendationLevels,
   onRecommendationLevelsChange,
+  selectedMembershipIds,
+  onMembershipIdsChange,
   sortValue,
   onSortChange,
   genreOptions,
   targetAudienceOptions,
   recommendationLevelOptions,
+  membershipOptions,
   hasActiveFilters,
   onClearAll,
 }: FilterSectionProps) {
@@ -76,6 +82,13 @@ export function FilterSection({
         values={selectedRecommendationLevels}
         options={recommendationLevelOptions}
         onChange={onRecommendationLevelsChange}
+      />
+
+      <MultiSelectFilter
+        label="メンバーシップ"
+        values={selectedMembershipIds}
+        options={membershipOptions}
+        onChange={onMembershipIdsChange}
       />
 
       {/* Sort selector */}

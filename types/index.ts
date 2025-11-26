@@ -14,6 +14,27 @@ export type Membership = {
   updatedAt?: string;
 };
 
+// ジャンル型
+export type Genre = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+// 読者メリット型
+export type Benefit = {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 // 記事型
 export type Article = {
   id: string;
@@ -25,7 +46,7 @@ export type Article = {
   estimatedReadTime: number;
   genre: string;
   targetAudience: string;
-  benefit: string;
+  benefit: string; // カンマ区切りで複数のメリットを保存
   recommendationLevel: string;
   createdAt: string;
   updatedAt: string;
@@ -46,7 +67,7 @@ export type ArticleFormData = {
   estimatedReadTime: number;
   genre: string;
   targetAudience: string;
-  benefit: string;
+  benefit: string; // カンマ区切りで複数のメリットを保存
   recommendationLevel: string;
   membershipIds: string[];
 };
@@ -56,6 +77,21 @@ export type MembershipFormData = {
   name: string;
   description: string;
   color: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+// ジャンルフォーム型
+export type GenreFormData = {
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+// 読者メリットフォーム型
+export type BenefitFormData = {
+  name: string;
+  description: string;
   sortOrder: number;
   isActive: boolean;
 };
@@ -78,4 +114,4 @@ export type ApiResponse<T> = {
 };
 
 // タブ型
-export type Tab = 'articles' | 'memberships';
+export type Tab = 'articles' | 'memberships' | 'genres' | 'benefits';
