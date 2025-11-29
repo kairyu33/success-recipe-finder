@@ -10,3 +10,5 @@ export { ArticleListCompact } from './ArticleListCompact';
 export { ArticleFilters } from './ArticleFilters';
 export { MembershipForm } from './MembershipForm';
 export { MembershipList } from './MembershipList';
+export { RatingList } from './RatingList';
+export { CommentList } from './CommentList';

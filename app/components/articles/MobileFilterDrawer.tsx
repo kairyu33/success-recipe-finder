@@ -20,6 +20,10 @@ type MobileFilterDrawerProps = {
   onRecommendationLevelsChange: (values: string[]) => void;
   selectedMembershipIds: string[];
   onMembershipIdsChange: (values: string[]) => void;
+  ratingFilter: string;
+  onRatingFilterChange: (value: string) => void;
+  commentFilter: string;
+  onCommentFilterChange: (value: string) => void;
   sortValue: string;
   onSortChange: (value: string) => void;
   genreOptions: Array<{ value: string; label: string }>;

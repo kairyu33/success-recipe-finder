@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -134,8 +134,10 @@ model Article {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // メンバーシップとのリレーション
+  // リレーション
   memberships   ArticleMembership[]
+  ratings       Rating[]
+  comments      Comment[]
 
   @@index([noteLink])
   @@index([publishedAt])
@@ -174,4 +176,39 @@ model ArticleMembership {
   @@unique([articleId, membershipId]) // 同じ組み合わせを防ぐ
   @@index([articleId])
   @@index([membershipId])
+}
+
+// 記事の評価テーブル
+model Rating {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String?  // ユーザーIDは任意（未ログインでも評価可能）
+  userName  String?  // 評価者の名前（任意）
+  score     Int      // 1-5の評価
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([userId])
+}
+
+// 記事のコメントテーブル
+model Comment {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String?  // ユーザーIDは任意（未ログインでもコメント可能）
+  userName  String   // コメント投稿者の名前
+  content   String   // コメント内容
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([createdAt])
 }

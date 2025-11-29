@@ -35,14 +35,12 @@ const nextConfig: NextConfig = {
   },
 
   /**
-   * Experimental Features
+   * Server External Packages
    *
-   * @description Enable serverComponentsExternalPackages for Prisma
+   * @description Specify packages to be treated as external in server components
    * This ensures Prisma binaries are included in the deployment
    */
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', '@prisma/engines'],
-  },
+  serverExternalPackages: ['@prisma/client', '@prisma/engines'],
 
   /**
    * Webpack Configuration

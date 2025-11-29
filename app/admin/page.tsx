@@ -14,6 +14,8 @@ import {
   ArticleFilters,
   MembershipForm,
   MembershipList,
+  RatingList,
+  CommentList,
 } from '@/app/components/admin';
 import type { ArticleFiltersState } from '@/app/components/admin/ArticleFilters';
 import {
@@ -28,6 +30,7 @@ import {
 } from '@/lib/api';
 import { MESSAGES, DEFAULT_MEMBERSHIP_COLOR } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
+import * as storage from '@/lib/localStorage';
 import type {
   Article,
   Membership,
@@ -47,6 +50,8 @@ export default function AdminPage() {
   const [allArticles, setAllArticles] = useState<Article[]>([]);
   const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [ratings, setRatings] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // フィルタ状態
@@ -114,6 +119,9 @@ export default function AdminPage() {
       setAllArticles(allArticlesData);
       setFilteredArticles(allArticlesData);
       setMemberships(membershipsData);
+
+      // localStorageから評価とコメントを取得して記事情報と結合
+      loadRatingsAndComments(allArticlesData);
     } catch (error) {
       console.error('データ取得エラー:', error);
       toast.error(MESSAGES.ERROR.DATA_FETCH_FAILED);
@@ -146,6 +154,62 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     await fetchInitialData();
+  };
+
+  // localStorageから評価とコメントを取得して記事情報と結合
+  const loadRatingsAndComments = (articles: Article[]) => {
+    const allRatings = storage.getAllRatings();
+    const allComments = storage.getAllComments();
+
+    // 記事情報マップを作成
+    const articleMap = new Map(articles.map(a => [a.id, a]));
+
+    // 評価に記事情報を追加
+    const ratingsWithArticle = allRatings
+      .map(rating => {
+        const article = articleMap.get(rating.articleId);
+        if (!article) return null;
+        return {
+          id: rating.id,
+          articleId: rating.articleId,
+          userId: null,
+          userName: rating.userName || null,
+          score: rating.score,
+          createdAt: rating.createdAt,
+          updatedAt: rating.createdAt,
+          article: {
+            id: article.id,
+            title: article.title,
+            noteLink: article.noteLink,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    // コメントに記事情報を追加
+    const commentsWithArticle = allComments
+      .map(comment => {
+        const article = articleMap.get(comment.articleId);
+        if (!article) return null;
+        return {
+          id: comment.id,
+          articleId: comment.articleId,
+          userId: null,
+          userName: comment.userName,
+          content: comment.content,
+          createdAt: comment.createdAt,
+          updatedAt: comment.createdAt,
+          article: {
+            id: article.id,
+            title: article.title,
+            noteLink: article.noteLink,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    setRatings(ratingsWithArticle);
+    setComments(commentsWithArticle);
   };
 
   // 利用可能な選択肢を計算
@@ -350,6 +414,44 @@ export default function AdminPage() {
     setShowMembershipForm(false);
   };
 
+  // 評価削除（localStorage使用）
+  const handleRatingDelete = async (id: string) => {
+    try {
+      const success = storage.deleteRating(id);
+
+      if (!success) {
+        throw new Error('評価が見つかりませんでした');
+      }
+
+      toast.success('評価を削除しました');
+      // 評価データを再取得
+      loadRatingsAndComments(allArticles);
+    } catch (error) {
+      console.error('評価削除エラー:', error);
+      toast.error('評価の削除に失敗しました');
+      throw error;
+    }
+  };
+
+  // コメント削除（localStorage使用）
+  const handleCommentDelete = async (id: string) => {
+    try {
+      const success = storage.deleteComment(id);
+
+      if (!success) {
+        throw new Error('コメントが見つかりませんでした');
+      }
+
+      toast.success('コメントを削除しました');
+      // コメントデータを再取得
+      loadRatingsAndComments(allArticles);
+    } catch (error) {
+      console.error('コメント削除エラー:', error);
+      toast.error('コメントの削除に失敗しました');
+      throw error;
+    }
+  };
+
   // 認証されていない場合はログインフォームを表示
   if (!isAuthenticated) {
     return <LoginForm onSuccess={() => setIsAuthenticated(true)} />;
@@ -449,6 +551,44 @@ export default function AdminPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               メンバーシップ管理
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ratings')}
+            className={`relative px-8 py-3.5 rounded-xl font-semibold transition-all duration-300 overflow-hidden ${
+              activeTab === 'ratings'
+                ? 'bg-gradient-primary text-white shadow-primary'
+                : 'text-neutral-600 hover:bg-white/50'
+            }`}
+          >
+            {activeTab === 'ratings' && (
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-shimmer" />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+              評価管理
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('comments')}
+            className={`relative px-8 py-3.5 rounded-xl font-semibold transition-all duration-300 overflow-hidden ${
+              activeTab === 'comments'
+                ? 'bg-gradient-primary text-white shadow-primary'
+                : 'text-neutral-600 hover:bg-white/50'
+            }`}
+          >
+            {activeTab === 'comments' && (
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] animate-shimmer" />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              コメント管理
             </span>
           </button>
         </div>
@@ -600,6 +740,32 @@ export default function AdminPage() {
                 memberships={memberships}
                 onEdit={handleMembershipEdit}
                 onDelete={handleMembershipDelete}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 評価管理タブ */}
+        {activeTab === 'ratings' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
+              <h2 className="text-2xl font-bold mb-6 gradient-text">評価一覧</h2>
+              <RatingList
+                ratings={ratings}
+                onDelete={handleRatingDelete}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* コメント管理タブ */}
+        {activeTab === 'comments' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="glass-light backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-soft-lg">
+              <h2 className="text-2xl font-bold mb-6 gradient-text">コメント一覧</h2>
+              <CommentList
+                comments={comments}
+                onDelete={handleCommentDelete}
               />
             </div>
           </div>

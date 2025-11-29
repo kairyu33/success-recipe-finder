@@ -105,6 +105,49 @@ export type ImportResult = {
   errors?: string[];
 };
 
+// 評価型
+export type Rating = {
+  id: string;
+  articleId: string;
+  userId: string | null;
+  userName: string | null;
+  score: number; // 1-5
+  createdAt: string;
+  updatedAt: string;
+};
+
+// コメント型
+export type Comment = {
+  id: string;
+  articleId: string;
+  userId: string | null;
+  userName: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// 評価フォーム型
+export type RatingFormData = {
+  articleId: string;
+  userName?: string;
+  score: number;
+};
+
+// コメントフォーム型
+export type CommentFormData = {
+  articleId: string;
+  userName: string;
+  content: string;
+};
+
+// 記事統計型
+export type ArticleStats = {
+  averageRating: number;
+  totalRatings: number;
+  totalComments: number;
+};
+
 // API レスポンス型
 export type ApiResponse<T> = {
   success?: boolean;
@@ -114,4 +157,4 @@ export type ApiResponse<T> = {
 };
 
 // タブ型
-export type Tab = 'articles' | 'memberships' | 'genres' | 'benefits';
+export type Tab = 'articles' | 'memberships' | 'genres' | 'benefits' | 'ratings' | 'comments';

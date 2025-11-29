@@ -1,0 +1,29 @@
+{
+  "project_name": "成功レシピ記事検索システム (Success Recipe Finder)",
+  "description": "noteプラットフォームで成功している記事を検索・分析・管理するWebアプリケーション。記事のジャンル、対象読者、おすすめ度による高度なフィルタリング機能を提供。",
+  "working_directory": "note-article-manager",
+  "primary_language": "TypeScript",
+  "framework": "Next.js 16 + React 19",
+  "database": "SQLite (dev) / PostgreSQL (production) + Prisma ORM",
+  "deployment": "Vercel",
+  "dev_port": 3003,
+  "important_notes": [
+    "このプロジェクトは成功レシピ記事検索システムです",
+    "他のnote関連プロジェクト（note-hashtag-ai-generator等）とは別物です",
+    "修正作業はこのプロジェクトにのみ集中してください",
+    "Git Worktree使用時は ../note-article-manager-work で作業してください"
+  ],
+  "main_features": [
+    "記事検索・フィルタリング",
+    "CSV一括インポート",
+    "管理画面（JWT認証）",
+    "レスポンシブUI（PC/モバイル）",
+    "メンバーシップ管理"
+  ],
+  "quick_start": {
+    "install": "npm install",
+    "dev": "npm run dev",
+    "build": "npm run build",
+    "db_setup": "npx prisma generate && npx prisma db push"
+  }
+}

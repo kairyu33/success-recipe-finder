@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchArticles, fetchAdminMemberships } from '@/lib/api';
+import { filterArticlesByStats } from '@/lib/articleFilters';
 import {
   ArticleCard,
   FilterSection,
@@ -24,6 +25,8 @@ export default function ArticlesPage() {
   const [selectedTargetAudiences, setSelectedTargetAudiences] = useState<string[]>([]);
   const [selectedRecommendationLevels, setSelectedRecommendationLevels] = useState<string[]>([]);
   const [selectedMembershipIds, setSelectedMembershipIds] = useState<string[]>([]);
+  const [ratingFilter, setRatingFilter] = useState('all'); // 'all' | 'has' | 'none'
+  const [commentFilter, setCommentFilter] = useState('all'); // 'all' | 'has' | 'none'
   const [sortValue, setSortValue] = useState('publishedAt-desc');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -38,7 +41,7 @@ export default function ArticlesPage() {
   // フィルター・ソート変更時に記事を再取得
   useEffect(() => {
     loadArticles();
-  }, [selectedGenres, selectedTargetAudiences, selectedRecommendationLevels, selectedMembershipIds, search, sortValue]);
+  }, [selectedGenres, selectedTargetAudiences, selectedRecommendationLevels, selectedMembershipIds, ratingFilter, commentFilter, search, sortValue]);
 
   // フィルター選択肢用に全記事を取得
   const loadAllArticles = async () => {
@@ -75,7 +78,10 @@ export default function ArticlesPage() {
         sortOrder,
         limit: 1000,
       });
-      setArticles(data);
+
+      // 評価・コメント数でフィルタリング（クライアントサイド）
+      const filteredData = await filterArticlesByStats(data, ratingFilter, commentFilter);
+      setArticles(filteredData);
     } catch (error) {
       console.error('記事取得エラー:', error);
     } finally {
@@ -107,6 +113,8 @@ export default function ArticlesPage() {
     selectedTargetAudiences.length > 0 ||
     selectedRecommendationLevels.length > 0 ||
     selectedMembershipIds.length > 0 ||
+    ratingFilter !== 'all' ||
+    commentFilter !== 'all' ||
     search.length > 0;
 
   const clearAllFilters = () => {
@@ -115,6 +123,8 @@ export default function ArticlesPage() {
     setSelectedTargetAudiences([]);
     setSelectedRecommendationLevels([]);
     setSelectedMembershipIds([]);
+    setRatingFilter('all');
+    setCommentFilter('all');
   };
 
   const filterProps = {
@@ -128,6 +138,10 @@ export default function ArticlesPage() {
     onRecommendationLevelsChange: setSelectedRecommendationLevels,
     selectedMembershipIds,
     onMembershipIdsChange: setSelectedMembershipIds,
+    ratingFilter,
+    onRatingFilterChange: setRatingFilter,
+    commentFilter,
+    onCommentFilterChange: setCommentFilter,
     sortValue,
     onSortChange: setSortValue,
     genreOptions,
@@ -314,7 +328,7 @@ export default function ArticlesPage() {
                 </div>
 
                 {/* Articles list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', overflow: 'hidden' }}>
                   {articles.map((article) => (
                     <ArticleCard key={article.id} article={article} />
                   ))}

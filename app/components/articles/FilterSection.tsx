@@ -19,6 +19,10 @@ type FilterSectionProps = {
   onRecommendationLevelsChange: (values: string[]) => void;
   selectedMembershipIds: string[];
   onMembershipIdsChange: (values: string[]) => void;
+  ratingFilter: string;
+  onRatingFilterChange: (value: string) => void;
+  commentFilter: string;
+  onCommentFilterChange: (value: string) => void;
   sortValue: string;
   onSortChange: (value: string) => void;
   genreOptions: Array<{ value: string; label: string }>;
@@ -40,6 +44,10 @@ export function FilterSection({
   onRecommendationLevelsChange,
   selectedMembershipIds,
   onMembershipIdsChange,
+  ratingFilter,
+  onRatingFilterChange,
+  commentFilter,
+  onCommentFilterChange,
   sortValue,
   onSortChange,
   genreOptions,
@@ -90,6 +98,58 @@ export function FilterSection({
         options={membershipOptions}
         onChange={onMembershipIdsChange}
       />
+
+      {/* Rating filter */}
+      <div>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
+          評価数
+        </label>
+        <select
+          value={ratingFilter}
+          onChange={(e) => onRatingFilterChange(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#1e293b',
+            background: 'white',
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+        >
+          <option value="all">すべて</option>
+          <option value="has">評価あり</option>
+          <option value="none">評価なし</option>
+        </select>
+      </div>
+
+      {/* Comment filter */}
+      <div>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
+          コメント数
+        </label>
+        <select
+          value={commentFilter}
+          onChange={(e) => onCommentFilterChange(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#1e293b',
+            background: 'white',
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+        >
+          <option value="all">すべて</option>
+          <option value="has">コメントあり</option>
+          <option value="none">コメントなし</option>
+        </select>
+      </div>
 
       {/* Sort selector */}
       <div style={{
