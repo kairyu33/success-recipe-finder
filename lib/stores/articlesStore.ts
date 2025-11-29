@@ -1,125 +1,11 @@
 /**
- * Articles Store - Hybrid storage system (Local JSON + Vercel Blob)
+ * Articles Store - Prisma Database Storage
  *
- * @description Manages article data using:
- * - Local: JSON file storage for development
- * - Production: Vercel Blob for persistent cloud storage
+ * @description Manages article data using Prisma ORM with PostgreSQL
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { put } from '@vercel/blob';
+import { prisma } from '@/lib/prisma';
 import type { Article, ArticleFormData } from '@/types';
-
-/**
- * Data structure for storage
- */
-interface ArticlesData {
-  articles: (Article & { membershipIds?: string[] })[];
-  lastModified: string;
-}
-
-// Storage configuration
-const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
-const IS_PRODUCTION = process.env.VERCEL === '1';
-const BLOB_FILENAME = 'articles.json';
-const DISABLE_BLOB = process.env.DISABLE_BLOB === 'true';
-
-
-// Local storage paths
-// Use /tmp directory in Vercel (writable), otherwise use local data directory
-const DATA_DIR = IS_PRODUCTION ? '/tmp/data' : path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'articles.json');
-
-/**
- * Check if we should use Vercel Blob storage
- */
-function shouldUseBlob(): boolean {
-  // Allow disabling Blob storage via environment variable
-  if (DISABLE_BLOB) {
-    return false;
-  }
-  return IS_PRODUCTION && !!BLOB_TOKEN;
-}
-
-/**
- * Ensure local data directory and file exist
- */
-async function ensureLocalDataFile(): Promise<void> {
-  try {
-    await fs.access(DATA_DIR);
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-  }
-
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    const initialData: ArticlesData = {
-      articles: [],
-      lastModified: new Date().toISOString()
-    };
-    await fs.writeFile(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
-  }
-}
-
-/**
- * Read articles from storage
- */
-async function readArticles(): Promise<(Article & { membershipIds?: string[] })[]> {
-  if (shouldUseBlob()) {
-    try {
-      const blobUrl = `${process.env.BLOB_URL_PREFIX}/${BLOB_FILENAME}`;
-      const response = await fetch(blobUrl);
-
-      if (!response.ok) {
-        console.log('Blob not found, initializing empty data');
-        return [];
-      }
-
-      const data: ArticlesData = await response.json();
-      return data.articles || [];
-    } catch (error) {
-      console.error('Error reading from Blob:', error);
-      return [];
-    }
-  } else {
-    await ensureLocalDataFile();
-    const data = await fs.readFile(DATA_FILE, 'utf-8');
-    const parsed: ArticlesData = JSON.parse(data);
-    return parsed.articles || [];
-  }
-}
-
-/**
- * Write articles to storage
- */
-async function writeArticles(articles: (Article & { membershipIds?: string[] })[]): Promise<void> {
-  const data: ArticlesData = {
-    articles,
-    lastModified: new Date().toISOString()
-  };
-
-  const jsonContent = JSON.stringify(data, null, 2);
-
-  if (shouldUseBlob()) {
-    try {
-      await put(BLOB_FILENAME, jsonContent, {
-        access: 'public',
-        contentType: 'application/json',
-        addRandomSuffix: false,
-      });
-      console.log('Successfully wrote to Vercel Blob');
-    } catch (error) {
-      console.error('Error writing to Blob:', error);
-      throw new Error('Failed to write to Blob storage');
-    }
-  } else {
-    await ensureLocalDataFile();
-    await fs.writeFile(DATA_FILE, jsonContent, 'utf-8');
-  }
-}
 
 /**
  * Get all articles with optional filtering
@@ -135,114 +21,142 @@ export async function getArticles(options?: {
   limit?: number;
   offset?: number;
 }): Promise<{ articles: Article[]; total: number }> {
-  let articles = await readArticles();
+  const where: any = {};
 
   // Apply search filter
   if (options?.search) {
-    const searchLower = options.search.toLowerCase();
-    articles = articles.filter(article =>
-      article.title.toLowerCase().includes(searchLower) ||
-      article.genre.toLowerCase().includes(searchLower) ||
-      article.benefit.toLowerCase().includes(searchLower)
-    );
+    where.OR = [
+      { title: { contains: options.search, mode: 'insensitive' } },
+      { genre: { contains: options.search, mode: 'insensitive' } },
+      { benefit: { contains: options.search, mode: 'insensitive' } },
+    ];
   }
 
   // Apply genre filter
   if (options?.genres && options.genres.length > 0) {
-    articles = articles.filter(article => options.genres!.includes(article.genre));
+    where.genre = { in: options.genres };
   }
 
   // Apply target audience filter
   if (options?.targetAudiences && options.targetAudiences.length > 0) {
-    articles = articles.filter(article => options.targetAudiences!.includes(article.targetAudience));
+    where.targetAudience = { in: options.targetAudiences };
   }
 
   // Apply recommendation level filter
   if (options?.recommendationLevels && options.recommendationLevels.length > 0) {
-    articles = articles.filter(article => options.recommendationLevels!.includes(article.recommendationLevel));
+    where.recommendationLevel = { in: options.recommendationLevels };
   }
 
   // Apply membership filter
   if (options?.membershipIds && options.membershipIds.length > 0) {
-    articles = articles.filter(article => {
-      const articleMembershipIds = article.membershipIds || [];
-      return options.membershipIds!.some(id => articleMembershipIds.includes(id));
-    });
+    where.memberships = {
+      some: {
+        membershipId: { in: options.membershipIds },
+      },
+    };
   }
 
-  // Sort articles
+  // Get total count
+  const total = await prisma.article.count({ where });
+
+  // Sort configuration
   const sortBy = options?.sortBy || 'publishedAt';
   const sortOrder = options?.sortOrder || 'desc';
 
-  articles.sort((a, b) => {
-    let aValue: any = (a as any)[sortBy];
-    let bValue: any = (b as any)[sortBy];
-
-    if (sortBy === 'publishedAt' || sortBy === 'createdAt' || sortBy === 'updatedAt') {
-      aValue = new Date(aValue).getTime();
-      bValue = new Date(bValue).getTime();
-    }
-
-    if (sortOrder === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
-    }
-  });
-
-  const total = articles.length;
-
-  // Apply pagination
+  // Get paginated articles
   const offset = options?.offset || 0;
   const limit = options?.limit || 100;
-  const paginatedArticles = articles.slice(offset, offset + limit);
 
-  // Get actual membership data
-  const { getMemberships } = await import('./membershipsStore');
-  const allMemberships = await getMemberships();
-  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
-
-  // Convert to Article type (convert membershipIds to memberships structure)
-  const result = paginatedArticles.map(article => {
-    const { membershipIds, ...rest } = article;
-    return {
-      ...rest,
-      memberships: (membershipIds || [])
-        .map(id => {
-          const membership = membershipMap.get(id);
-          return membership ? { membership } : null;
-        })
-        .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
-    } as Article;
+  const dbArticles = await prisma.article.findMany({
+    where,
+    include: {
+      memberships: {
+        include: {
+          membership: true,
+        },
+      },
+    },
+    orderBy: { [sortBy]: sortOrder },
+    skip: offset,
+    take: limit,
   });
 
-  return { articles: result, total };
+  // Transform to Article type
+  const articles: Article[] = dbArticles.map((article) => ({
+    id: article.id,
+    rowNumber: article.rowNumber,
+    title: article.title,
+    noteLink: article.noteLink,
+    publishedAt: article.publishedAt.toISOString(),
+    characterCount: article.characterCount,
+    estimatedReadTime: article.estimatedReadTime,
+    genre: article.genre,
+    targetAudience: article.targetAudience,
+    benefit: article.benefit,
+    recommendationLevel: article.recommendationLevel,
+    createdAt: article.createdAt.toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
+    memberships: article.memberships.map((am) => ({
+      membership: {
+        id: am.membership.id,
+        name: am.membership.name,
+        description: am.membership.description,
+        color: am.membership.color,
+        sortOrder: am.membership.sortOrder,
+        isActive: am.membership.isActive,
+        createdAt: am.membership.createdAt.toISOString(),
+        updatedAt: am.membership.updatedAt.toISOString(),
+      },
+    })),
+  }));
+
+  return { articles, total };
 }
 
 /**
  * Get a single article by ID
  */
 export async function getArticleById(id: string): Promise<Article | null> {
-  const articles = await readArticles();
-  const article = articles.find(a => a.id === id);
+  const article = await prisma.article.findUnique({
+    where: { id },
+    include: {
+      memberships: {
+        include: {
+          membership: true,
+        },
+      },
+    },
+  });
 
   if (!article) return null;
 
-  // Get actual membership data
-  const { getMemberships } = await import('./membershipsStore');
-  const allMemberships = await getMemberships();
-  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
-
-  const { membershipIds, ...rest } = article;
   return {
-    ...rest,
-    memberships: (membershipIds || [])
-      .map(id => {
-        const membership = membershipMap.get(id);
-        return membership ? { membership } : null;
-      })
-      .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
-  } as Article;
+    id: article.id,
+    rowNumber: article.rowNumber,
+    title: article.title,
+    noteLink: article.noteLink,
+    publishedAt: article.publishedAt.toISOString(),
+    characterCount: article.characterCount,
+    estimatedReadTime: article.estimatedReadTime,
+    genre: article.genre,
+    targetAudience: article.targetAudience,
+    benefit: article.benefit,
+    recommendationLevel: article.recommendationLevel,
+    createdAt: article.createdAt.toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
+    memberships: article.memberships.map((am) => ({
+      membership: {
+        id: am.membership.id,
+        name: am.membership.name,
+        description: am.membership.description,
+        color: am.membership.color,
+        sortOrder: am.membership.sortOrder,
+        isActive: am.membership.isActive,
+        createdAt: am.membership.createdAt.toISOString(),
+        updatedAt: am.membership.updatedAt.toISOString(),
+      },
+    })),
+  };
 }
 
 /**
@@ -251,51 +165,74 @@ export async function getArticleById(id: string): Promise<Article | null> {
 export async function createArticle(
   data: ArticleFormData & { rowNumber?: number }
 ): Promise<Article> {
-  const articles = await readArticles();
-
   // Check for duplicate noteLink
-  const existing = articles.find(article => article.noteLink === data.noteLink);
+  const existing = await prisma.article.findUnique({
+    where: { noteLink: data.noteLink },
+  });
+
   if (existing) {
     throw new Error('Article with this noteLink already exists');
   }
 
-  const now = new Date().toISOString();
-  const newArticle = {
-    id: uuidv4(),
-    rowNumber: data.rowNumber || articles.length + 1,
-    title: data.title,
-    noteLink: data.noteLink,
-    publishedAt: data.publishedAt,
-    characterCount: data.characterCount,
-    estimatedReadTime: data.estimatedReadTime,
-    genre: data.genre,
-    targetAudience: data.targetAudience,
-    benefit: data.benefit,
-    recommendationLevel: data.recommendationLevel,
-    createdAt: now,
-    updatedAt: now,
-    membershipIds: data.membershipIds || [],
-    memberships: []
-  };
+  // Get next row number if not provided
+  const rowNumber = data.rowNumber || (await prisma.article.count()) + 1;
 
-  articles.push(newArticle);
-  await writeArticles(articles);
+  const article = await prisma.article.create({
+    data: {
+      rowNumber,
+      title: data.title,
+      noteLink: data.noteLink,
+      publishedAt: new Date(data.publishedAt),
+      characterCount: data.characterCount,
+      estimatedReadTime: data.estimatedReadTime,
+      genre: data.genre,
+      targetAudience: data.targetAudience,
+      benefit: data.benefit,
+      recommendationLevel: data.recommendationLevel,
+      memberships: data.membershipIds
+        ? {
+          create: data.membershipIds.map((membershipId) => ({
+            membershipId,
+          })),
+        }
+        : undefined,
+    },
+    include: {
+      memberships: {
+        include: {
+          membership: true,
+        },
+      },
+    },
+  });
 
-  // Get actual membership data
-  const { getMemberships } = await import('./membershipsStore');
-  const allMemberships = await getMemberships();
-  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
-
-  const { membershipIds, ...rest } = newArticle;
   return {
-    ...rest,
-    memberships: (membershipIds || [])
-      .map(id => {
-        const membership = membershipMap.get(id);
-        return membership ? { membership } : null;
-      })
-      .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
-  } as Article;
+    id: article.id,
+    rowNumber: article.rowNumber,
+    title: article.title,
+    noteLink: article.noteLink,
+    publishedAt: article.publishedAt.toISOString(),
+    characterCount: article.characterCount,
+    estimatedReadTime: article.estimatedReadTime,
+    genre: article.genre,
+    targetAudience: article.targetAudience,
+    benefit: article.benefit,
+    recommendationLevel: article.recommendationLevel,
+    createdAt: article.createdAt.toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
+    memberships: article.memberships.map((am) => ({
+      membership: {
+        id: am.membership.id,
+        name: am.membership.name,
+        description: am.membership.description,
+        color: am.membership.color,
+        sortOrder: am.membership.sortOrder,
+        isActive: am.membership.isActive,
+        createdAt: am.membership.createdAt.toISOString(),
+        updatedAt: am.membership.updatedAt.toISOString(),
+      },
+    })),
+  };
 }
 
 /**
@@ -305,129 +242,178 @@ export async function updateArticle(
   id: string,
   data: Partial<ArticleFormData>
 ): Promise<Article> {
-  const articles = await readArticles();
-  const index = articles.findIndex(article => article.id === id);
-
-  if (index === -1) {
-    throw new Error('Article not found');
-  }
-
   // Check for duplicate noteLink if being updated
-  if (data.noteLink && data.noteLink !== articles[index].noteLink) {
-    const duplicate = articles.find(article => article.noteLink === data.noteLink);
+  if (data.noteLink) {
+    const duplicate = await prisma.article.findFirst({
+      where: {
+        noteLink: data.noteLink,
+        NOT: { id },
+      },
+    });
+
     if (duplicate) {
       throw new Error('Article with this noteLink already exists');
     }
   }
 
-  const updatedArticle = {
-    ...articles[index],
-    ...(data.title !== undefined && { title: data.title }),
-    ...(data.noteLink !== undefined && { noteLink: data.noteLink }),
-    ...(data.publishedAt !== undefined && { publishedAt: data.publishedAt }),
-    ...(data.characterCount !== undefined && { characterCount: data.characterCount }),
-    ...(data.estimatedReadTime !== undefined && { estimatedReadTime: data.estimatedReadTime }),
-    ...(data.genre !== undefined && { genre: data.genre }),
-    ...(data.targetAudience !== undefined && { targetAudience: data.targetAudience }),
-    ...(data.benefit !== undefined && { benefit: data.benefit }),
-    ...(data.recommendationLevel !== undefined && { recommendationLevel: data.recommendationLevel }),
-    ...(data.membershipIds !== undefined && { membershipIds: data.membershipIds }),
-    updatedAt: new Date().toISOString()
-  };
+  // Update memberships if provided
+  if (data.membershipIds !== undefined) {
+    // Delete existing memberships
+    await prisma.articleMembership.deleteMany({
+      where: { articleId: id },
+    });
 
-  articles[index] = updatedArticle;
-  await writeArticles(articles);
+    // Create new memberships
+    if (data.membershipIds.length > 0) {
+      await prisma.articleMembership.createMany({
+        data: data.membershipIds.map((membershipId) => ({
+          articleId: id,
+          membershipId,
+        })),
+      });
+    }
+  }
 
-  // Get actual membership data
-  const { getMemberships } = await import('./membershipsStore');
-  const allMemberships = await getMemberships();
-  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
+  const article = await prisma.article.update({
+    where: { id },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.noteLink !== undefined && { noteLink: data.noteLink }),
+      ...(data.publishedAt !== undefined && {
+        publishedAt: new Date(data.publishedAt),
+      }),
+      ...(data.characterCount !== undefined && {
+        characterCount: data.characterCount,
+      }),
+      ...(data.estimatedReadTime !== undefined && {
+        estimatedReadTime: data.estimatedReadTime,
+      }),
+      ...(data.genre !== undefined && { genre: data.genre }),
+      ...(data.targetAudience !== undefined && {
+        targetAudience: data.targetAudience,
+      }),
+      ...(data.benefit !== undefined && { benefit: data.benefit }),
+      ...(data.recommendationLevel !== undefined && {
+        recommendationLevel: data.recommendationLevel,
+      }),
+    },
+    include: {
+      memberships: {
+        include: {
+          membership: true,
+        },
+      },
+    },
+  });
 
-  const { membershipIds, ...rest } = updatedArticle;
   return {
-    ...rest,
-    memberships: (membershipIds || [])
-      .map(id => {
-        const membership = membershipMap.get(id);
-        return membership ? { membership } : null;
-      })
-      .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
-  } as Article;
+    id: article.id,
+    rowNumber: article.rowNumber,
+    title: article.title,
+    noteLink: article.noteLink,
+    publishedAt: article.publishedAt.toISOString(),
+    characterCount: article.characterCount,
+    estimatedReadTime: article.estimatedReadTime,
+    genre: article.genre,
+    targetAudience: article.targetAudience,
+    benefit: article.benefit,
+    recommendationLevel: article.recommendationLevel,
+    createdAt: article.createdAt.toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
+    memberships: article.memberships.map((am) => ({
+      membership: {
+        id: am.membership.id,
+        name: am.membership.name,
+        description: am.membership.description,
+        color: am.membership.color,
+        sortOrder: am.membership.sortOrder,
+        isActive: am.membership.isActive,
+        createdAt: am.membership.createdAt.toISOString(),
+        updatedAt: am.membership.updatedAt.toISOString(),
+      },
+    })),
+  };
 }
 
 /**
  * Delete an article by ID
  */
 export async function deleteArticle(id: string): Promise<boolean> {
-  const articles = await readArticles();
-  const index = articles.findIndex(article => article.id === id);
-
-  if (index === -1) {
+  try {
+    await prisma.article.delete({
+      where: { id },
+    });
+    return true;
+  } catch {
     return false;
   }
-
-  articles.splice(index, 1);
-  await writeArticles(articles);
-
-  return true;
 }
 
 /**
  * Delete all articles
  */
 export async function deleteAllArticles(): Promise<number> {
-  const articles = await readArticles();
-  const count = articles.length;
-  await writeArticles([]);
-  return count;
+  const result = await prisma.article.deleteMany();
+  return result.count;
 }
 
 /**
  * Bulk create articles (used for CSV import)
  */
 export async function bulkCreateArticles(
-  articlesData: Array<Omit<Article, 'id' | 'createdAt' | 'updatedAt' | 'memberships'> & { membershipIds?: string[] }>
+  articlesData: Array<
+    Omit<Article, 'id' | 'createdAt' | 'updatedAt' | 'memberships'> & {
+      membershipIds?: string[];
+    }
+  >
 ): Promise<{
   imported: number;
   skipped: number;
   errors: string[];
 }> {
-  const articles = await readArticles();
-  const existingLinks = new Set(articles.map(a => a.noteLink));
-
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
-  const now = new Date().toISOString();
 
   for (const data of articlesData) {
     try {
-      // Skip if duplicate
-      if (existingLinks.has(data.noteLink)) {
+      // Check for duplicate
+      const existing = await prisma.article.findUnique({
+        where: { noteLink: data.noteLink },
+      });
+
+      if (existing) {
         skipped++;
         continue;
       }
 
-      const newArticle = {
-        ...data,
-        id: uuidv4(),
-        createdAt: now,
-        updatedAt: now,
-        membershipIds: data.membershipIds || [],
-        memberships: []
-      };
+      await prisma.article.create({
+        data: {
+          rowNumber: data.rowNumber,
+          title: data.title,
+          noteLink: data.noteLink,
+          publishedAt: new Date(data.publishedAt),
+          characterCount: data.characterCount,
+          estimatedReadTime: data.estimatedReadTime,
+          genre: data.genre,
+          targetAudience: data.targetAudience,
+          benefit: data.benefit,
+          recommendationLevel: data.recommendationLevel,
+          memberships: data.membershipIds
+            ? {
+              create: data.membershipIds.map((membershipId) => ({
+                membershipId,
+              })),
+            }
+            : undefined,
+        },
+      });
 
-      articles.push(newArticle);
-      existingLinks.add(data.noteLink);
       imported++;
     } catch (error) {
       errors.push(`Failed to import: ${data.title} - ${error}`);
       skipped++;
     }
-  }
-
-  if (imported > 0) {
-    await writeArticles(articles);
   }
 
   return { imported, skipped, errors };
@@ -436,9 +422,9 @@ export async function bulkCreateArticles(
 /**
  * Get storage info for debugging
  */
-export function getStorageInfo(): { type: 'blob' | 'local'; production: boolean } {
+export function getStorageInfo(): { type: 'database'; production: boolean } {
   return {
-    type: shouldUseBlob() ? 'blob' : 'local',
-    production: IS_PRODUCTION
+    type: 'database',
+    production: process.env.VERCEL === '1',
   };
 }
