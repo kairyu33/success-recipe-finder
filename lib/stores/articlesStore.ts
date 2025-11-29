@@ -190,21 +190,22 @@ export async function getArticles(options?: {
   const limit = options?.limit || 100;
   const paginatedArticles = articles.slice(offset, offset + limit);
 
+  // Get actual membership data
+  const { getMemberships } = await import('./membershipsStore');
+  const allMemberships = await getMemberships();
+  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
+
   // Convert to Article type (convert membershipIds to memberships structure)
   const result = paginatedArticles.map(article => {
     const { membershipIds, ...rest } = article;
     return {
       ...rest,
-      memberships: (membershipIds || []).map(id => ({
-        membership: {
-          id,
-          name: '', // Will be populated by admin UI if needed
-          description: null,
-          color: null,
-          sortOrder: 0,
-          isActive: true
-        }
-      }))
+      memberships: (membershipIds || [])
+        .map(id => {
+          const membership = membershipMap.get(id);
+          return membership ? { membership } : null;
+        })
+        .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
     } as Article;
   });
 
@@ -220,19 +221,20 @@ export async function getArticleById(id: string): Promise<Article | null> {
 
   if (!article) return null;
 
+  // Get actual membership data
+  const { getMemberships } = await import('./membershipsStore');
+  const allMemberships = await getMemberships();
+  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
+
   const { membershipIds, ...rest } = article;
   return {
     ...rest,
-    memberships: (membershipIds || []).map(id => ({
-      membership: {
-        id,
-        name: '', // Will be populated by admin UI if needed
-        description: null,
-        color: null,
-        sortOrder: 0,
-        isActive: true
-      }
-    }))
+    memberships: (membershipIds || [])
+      .map(id => {
+        const membership = membershipMap.get(id);
+        return membership ? { membership } : null;
+      })
+      .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
   } as Article;
 }
 
@@ -272,19 +274,20 @@ export async function createArticle(
   articles.push(newArticle);
   await writeArticles(articles);
 
+  // Get actual membership data
+  const { getMemberships } = await import('./membershipsStore');
+  const allMemberships = await getMemberships();
+  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
+
   const { membershipIds, ...rest } = newArticle;
   return {
     ...rest,
-    memberships: (membershipIds || []).map(id => ({
-      membership: {
-        id,
-        name: '',
-        description: null,
-        color: null,
-        sortOrder: 0,
-        isActive: true
-      }
-    }))
+    memberships: (membershipIds || [])
+      .map(id => {
+        const membership = membershipMap.get(id);
+        return membership ? { membership } : null;
+      })
+      .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
   } as Article;
 }
 
@@ -328,19 +331,20 @@ export async function updateArticle(
   articles[index] = updatedArticle;
   await writeArticles(articles);
 
+  // Get actual membership data
+  const { getMemberships } = await import('./membershipsStore');
+  const allMemberships = await getMemberships();
+  const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
+
   const { membershipIds, ...rest } = updatedArticle;
   return {
     ...rest,
-    memberships: (membershipIds || []).map(id => ({
-      membership: {
-        id,
-        name: '',
-        description: null,
-        color: null,
-        sortOrder: 0,
-        isActive: true
-      }
-    }))
+    memberships: (membershipIds || [])
+      .map(id => {
+        const membership = membershipMap.get(id);
+        return membership ? { membership } : null;
+      })
+      .filter((m): m is { membership: typeof allMemberships[0] } => m !== null)
   } as Article;
 }
 

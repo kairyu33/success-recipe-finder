@@ -322,9 +322,17 @@ export default function AdminPage() {
         ? currentMembershipIds.filter((id) => id !== membershipId)
         : [...currentMembershipIds, membershipId];
 
-      // Update the article
+      // Update the article with only the required fields
       await updateArticle(articleId, {
-        ...article,
+        title: article.title,
+        noteLink: article.noteLink,
+        publishedAt: article.publishedAt,
+        characterCount: article.characterCount,
+        estimatedReadTime: article.estimatedReadTime,
+        genre: article.genre,
+        targetAudience: article.targetAudience,
+        benefit: article.benefit,
+        recommendationLevel: article.recommendationLevel,
         membershipIds: newMembershipIds,
       });
 
