@@ -375,44 +375,77 @@ export async function bulkCreateArticles(
   let skipped = 0;
   const errors: string[] = [];
 
-  for (const data of articlesData) {
-    try {
-      // Check for duplicate
-      const existing = await prisma.article.findUnique({
-        where: { noteLink: data.noteLink },
-      });
+  // Get all existing noteLinks in one query
+  const existingArticles = await prisma.article.findMany({
+    where: {
+      noteLink: {
+        in: articlesData.map((a) => a.noteLink),
+      },
+    },
+    select: { noteLink: true },
+  });
 
-      if (existing) {
-        skipped++;
-        continue;
-      }
+  const existingNoteLinks = new Set(
+    existingArticles.map((a) => a.noteLink)
+  );
 
-      await prisma.article.create({
-        data: {
-          rowNumber: data.rowNumber,
-          title: data.title,
-          noteLink: data.noteLink,
-          publishedAt: new Date(data.publishedAt),
-          characterCount: data.characterCount,
-          estimatedReadTime: data.estimatedReadTime,
-          genre: data.genre,
-          targetAudience: data.targetAudience,
-          benefit: data.benefit,
-          recommendationLevel: data.recommendationLevel,
-          memberships: data.membershipIds
-            ? {
-              create: data.membershipIds.map((membershipId) => ({
-                membershipId,
-              })),
-            }
-            : undefined,
-        },
-      });
-
-      imported++;
-    } catch (error) {
-      errors.push(`Failed to import: ${data.title} - ${error}`);
+  // Filter out duplicates
+  const newArticles = articlesData.filter((data) => {
+    if (existingNoteLinks.has(data.noteLink)) {
       skipped++;
+      return false;
+    }
+    return true;
+  });
+
+  if (newArticles.length === 0) {
+    return { imported, skipped, errors };
+  }
+
+  // Process in batches of 50 to avoid overwhelming the database
+  const BATCH_SIZE = 50;
+
+  for (let i = 0; i < newArticles.length; i += BATCH_SIZE) {
+    const batch = newArticles.slice(i, i + BATCH_SIZE);
+
+    try {
+      // Use a transaction for each batch
+      await prisma.$transaction(async (tx) => {
+        for (const data of batch) {
+          try {
+            const article = await tx.article.create({
+              data: {
+                rowNumber: data.rowNumber,
+                title: data.title,
+                noteLink: data.noteLink,
+                publishedAt: new Date(data.publishedAt),
+                characterCount: data.characterCount,
+                estimatedReadTime: data.estimatedReadTime,
+                genre: data.genre,
+                targetAudience: data.targetAudience,
+                benefit: data.benefit,
+                recommendationLevel: data.recommendationLevel,
+              },
+            });
+
+            // Create memberships if any
+            if (data.membershipIds && data.membershipIds.length > 0) {
+              await tx.articleMembership.createMany({
+                data: data.membershipIds.map((membershipId) => ({
+                  articleId: article.id,
+                  membershipId,
+                })),
+              });
+            }
+
+            imported++;
+          } catch (error) {
+            errors.push(`Failed to import: ${data.title} - ${error}`);
+          }
+        }
+      });
+    } catch (error) {
+      errors.push(`Batch processing failed: ${error}`);
     }
   }
 
