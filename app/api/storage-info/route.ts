@@ -22,9 +22,9 @@ export async function GET() {
       environment: process.env.NODE_ENV,
       vercel: process.env.VERCEL === '1',
       blobConfigured: !!process.env.BLOB_READ_WRITE_TOKEN,
-      message: storageInfo.type === 'blob'
-        ? 'Using Vercel Blob storage (production)'
-        : 'Using local JSON file storage (development)'
+      message: storageInfo.type === 'database'
+        ? 'Using Vercel Postgres database (production/development)'
+        : 'Using local JSON file storage'
     });
 
   } catch (error) {
