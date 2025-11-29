@@ -11,5 +11,5 @@ export { SortSelector } from './SortSelector';
 export { FilterSection } from './FilterSection';
 export { MobileFilterDrawer } from './MobileFilterDrawer';
 export { ArticleDetailModal } from './ArticleDetailModal';
-export { RatingInput } from './RatingInput';
-export { CommentSection } from './CommentSection';
+export { SimpleRatingInput as RatingInput } from './SimpleRatingInput';
+export { SimpleCommentSection as CommentSection } from './SimpleCommentSection';
