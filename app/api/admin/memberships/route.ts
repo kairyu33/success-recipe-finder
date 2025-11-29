@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getMemberships, createMembership } from '@/lib/stores/membershipsStore';
-import { getAuthSession } from '@/lib/simpleAuth';
+import { isAdmin } from '@/lib/adminAuth';
 
 /**
  * GET /api/admin/memberships
@@ -16,9 +16,7 @@ import { getAuthSession } from '@/lib/simpleAuth';
 export async function GET() {
   try {
     // SECURITY: Require authentication for admin operations
-    const session = await getAuthSession();
-
-    if (!session || !session.authenticated) {
+    if (!(await isAdmin())) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -48,9 +46,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     // SECURITY: Require authentication for membership creation
-    const session = await getAuthSession();
-
-    if (!session || !session.authenticated) {
+    if (!(await isAdmin())) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
