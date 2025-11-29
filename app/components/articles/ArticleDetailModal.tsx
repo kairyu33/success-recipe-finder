@@ -260,19 +260,19 @@ export function ArticleDetailModal({ article, isOpen, onClose }: ArticleDetailMo
                     メンバーシップ
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {article.memberships.map((membership) => (
+                    {article.memberships.map((m) => (
                       <span
-                        key={membership.id}
+                        key={m.membership.id}
                         style={{
                           padding: '4px 12px',
-                          background: membership.color || '#a855f7',
+                          background: m.membership.color || '#a855f7',
                           color: 'white',
                           borderRadius: '16px',
                           fontSize: '12px',
                           fontWeight: '600',
                         }}
                       >
-                        {membership.name}
+                        {m.membership.name}
                       </span>
                     ))}
                   </div>
