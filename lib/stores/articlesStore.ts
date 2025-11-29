@@ -24,6 +24,7 @@ interface ArticlesData {
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const IS_PRODUCTION = process.env.VERCEL === '1';
 const BLOB_FILENAME = 'articles.json';
+const DISABLE_BLOB = process.env.DISABLE_BLOB === 'true';
 
 // Local storage paths
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -33,6 +34,10 @@ const DATA_FILE = path.join(DATA_DIR, 'articles.json');
  * Check if we should use Vercel Blob storage
  */
 function shouldUseBlob(): boolean {
+  // Allow disabling Blob storage via environment variable
+  if (DISABLE_BLOB) {
+    return false;
+  }
   return IS_PRODUCTION && !!BLOB_TOKEN;
 }
 
