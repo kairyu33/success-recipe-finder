@@ -13,7 +13,8 @@ async function main() {
     const membershipsPath = path.join(process.cwd(), 'data', 'memberships.json');
 
     if (fs.existsSync(membershipsPath)) {
-        const membershipsData = JSON.parse(fs.readFileSync(membershipsPath, 'utf-8'));
+        const membershipsFileData = JSON.parse(fs.readFileSync(membershipsPath, 'utf-8'));
+        const membershipsData = membershipsFileData.memberships || membershipsFileData; // Handle both { memberships: [] } and direct array
 
         for (const m of membershipsData) {
             try {
