@@ -368,77 +368,92 @@ export async function bulkCreateArticles(
   >
 ): Promise<{
   imported: number;
-  skipped: number;
+  updated: number;
   errors: string[];
 }> {
   let imported = 0;
-  let skipped = 0;
+  let updated = 0;
   const errors: string[] = [];
-
-  // Get all existing noteLinks in one query
-  const existingArticles = await prisma.article.findMany({
-    where: {
-      noteLink: {
-        in: articlesData.map((a) => a.noteLink),
-      },
-    },
-    select: { noteLink: true },
-  });
-
-  const existingNoteLinks = new Set(
-    existingArticles.map((a) => a.noteLink)
-  );
-
-  // Filter out duplicates
-  const newArticles = articlesData.filter((data) => {
-    if (existingNoteLinks.has(data.noteLink)) {
-      skipped++;
-      return false;
-    }
-    return true;
-  });
-
-  if (newArticles.length === 0) {
-    return { imported, skipped, errors };
-  }
 
   // Process in batches of 50 to avoid overwhelming the database
   const BATCH_SIZE = 50;
 
-  for (let i = 0; i < newArticles.length; i += BATCH_SIZE) {
-    const batch = newArticles.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < articlesData.length; i += BATCH_SIZE) {
+    const batch = articlesData.slice(i, i + BATCH_SIZE);
 
     try {
       // Use a transaction for each batch
       await prisma.$transaction(async (tx) => {
         for (const data of batch) {
           try {
-            const article = await tx.article.create({
-              data: {
-                rowNumber: data.rowNumber,
-                title: data.title,
-                noteLink: data.noteLink,
-                publishedAt: new Date(data.publishedAt),
-                characterCount: data.characterCount,
-                estimatedReadTime: data.estimatedReadTime,
-                genre: data.genre,
-                targetAudience: data.targetAudience,
-                benefit: data.benefit,
-                recommendationLevel: data.recommendationLevel,
-              },
+            // Check if article exists
+            const existing = await tx.article.findUnique({
+              where: { noteLink: data.noteLink },
             });
 
-            // Create memberships if any
-            if (data.membershipIds && data.membershipIds.length > 0) {
-              await tx.articleMembership.createMany({
-                data: data.membershipIds.map((membershipId) => ({
-                  articleId: article.id,
-                  membershipId,
-                })),
+            if (existing) {
+              // Update existing article
+              await tx.article.update({
+                where: { noteLink: data.noteLink },
+                data: {
+                  rowNumber: data.rowNumber,
+                  title: data.title,
+                  publishedAt: new Date(data.publishedAt),
+                  characterCount: data.characterCount,
+                  estimatedReadTime: data.estimatedReadTime,
+                  genre: data.genre,
+                  targetAudience: data.targetAudience,
+                  benefit: data.benefit,
+                  recommendationLevel: data.recommendationLevel,
+                },
               });
-            }
 
-            imported++;
+              // Update memberships - delete old ones and create new ones
+              if (data.membershipIds !== undefined) {
+                await tx.articleMembership.deleteMany({
+                  where: { articleId: existing.id },
+                });
+
+                if (data.membershipIds.length > 0) {
+                  await tx.articleMembership.createMany({
+                    data: data.membershipIds.map((membershipId) => ({
+                      articleId: existing.id,
+                      membershipId,
+                    })),
+                  });
+                }
+              }
+
+              updated++;
+            } else {
+              // Create new article
+              const article = await tx.article.create({
+                data: {
+                  rowNumber: data.rowNumber,
+                  title: data.title,
+                  noteLink: data.noteLink,
+                  publishedAt: new Date(data.publishedAt),
+                  characterCount: data.characterCount,
+                  estimatedReadTime: data.estimatedReadTime,
+                  genre: data.genre,
+                  targetAudience: data.targetAudience,
+                  benefit: data.benefit,
+                  recommendationLevel: data.recommendationLevel,
+                },
+              });
+
+              // Create memberships if any
+              if (data.membershipIds && data.membershipIds.length > 0) {
+                await tx.articleMembership.createMany({
+                  data: data.membershipIds.map((membershipId) => ({
+                    articleId: article.id,
+                    membershipId,
+                  })),
+                });
+              }
+
+              imported++;
+            }
           } catch (error) {
             errors.push(`Failed to import: ${data.title} - ${error}`);
           }
@@ -449,7 +464,7 @@ export async function bulkCreateArticles(
     }
   }
 
-  return { imported, skipped, errors };
+  return { imported, updated, errors };
 }
 
 /**

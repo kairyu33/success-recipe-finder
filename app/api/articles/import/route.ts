@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       success: true,
       total: articles.length,
       imported: result.imported,
-      skipped: result.skipped,
+      updated: result.updated,
       errors: result.errors.length > 0 ? result.errors : undefined
     });
 
