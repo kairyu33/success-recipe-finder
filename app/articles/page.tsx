@@ -23,6 +23,7 @@ export default function ArticlesPage() {
   const [search, setSearch] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedTargetAudiences, setSelectedTargetAudiences] = useState<string[]>([]);
+  const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
   const [selectedRecommendationLevels, setSelectedRecommendationLevels] = useState<string[]>([]);
   const [selectedMembershipIds, setSelectedMembershipIds] = useState<string[]>([]);
   const [ratingFilter, setRatingFilter] = useState('all'); // 'all' | 'has' | 'none'
@@ -41,7 +42,7 @@ export default function ArticlesPage() {
   // フィルター・ソート変更時に記事を再取得
   useEffect(() => {
     loadArticles();
-  }, [selectedGenres, selectedTargetAudiences, selectedRecommendationLevels, selectedMembershipIds, ratingFilter, commentFilter, search, sortValue]);
+  }, [selectedGenres, selectedTargetAudiences, selectedBenefits, selectedRecommendationLevels, selectedMembershipIds, ratingFilter, commentFilter, search, sortValue]);
 
   // フィルター選択肢用に全記事を取得
   const loadAllArticles = async () => {
@@ -72,6 +73,7 @@ export default function ArticlesPage() {
         search,
         genres: selectedGenres,
         targetAudiences: selectedTargetAudiences,
+        benefits: selectedBenefits,
         recommendationLevels: selectedRecommendationLevels,
         membershipIds: selectedMembershipIds,
         sortBy,
@@ -98,6 +100,10 @@ export default function ArticlesPage() {
     new Set(allArticles.map((a) => a.targetAudience).filter(Boolean))
   ).map((audience) => ({ value: audience, label: audience }));
 
+  const benefitOptions = Array.from(
+    new Set(allArticles.map((a) => a.benefit).filter(Boolean))
+  ).map((benefit) => ({ value: benefit, label: benefit }));
+
   const recommendationLevelOptions = Array.from(
     new Set(allArticles.map((a) => a.recommendationLevel).filter(Boolean))
   ).map((level) => ({ value: level, label: level }))
@@ -111,6 +117,7 @@ export default function ArticlesPage() {
   const hasActiveFilters =
     selectedGenres.length > 0 ||
     selectedTargetAudiences.length > 0 ||
+    selectedBenefits.length > 0 ||
     selectedRecommendationLevels.length > 0 ||
     selectedMembershipIds.length > 0 ||
     ratingFilter !== 'all' ||
@@ -121,6 +128,7 @@ export default function ArticlesPage() {
     setSearch('');
     setSelectedGenres([]);
     setSelectedTargetAudiences([]);
+    setSelectedBenefits([]);
     setSelectedRecommendationLevels([]);
     setSelectedMembershipIds([]);
     setRatingFilter('all');
@@ -134,6 +142,8 @@ export default function ArticlesPage() {
     onGenresChange: setSelectedGenres,
     selectedTargetAudiences,
     onTargetAudiencesChange: setSelectedTargetAudiences,
+    selectedBenefits,
+    onBenefitsChange: setSelectedBenefits,
     selectedRecommendationLevels,
     onRecommendationLevelsChange: setSelectedRecommendationLevels,
     selectedMembershipIds,
@@ -146,6 +156,7 @@ export default function ArticlesPage() {
     onSortChange: setSortValue,
     genreOptions,
     targetAudienceOptions,
+    benefitOptions,
     recommendationLevelOptions,
     membershipOptions,
     hasActiveFilters,
@@ -269,7 +280,7 @@ export default function ArticlesPage() {
               position: 'sticky',
               top: '20px'
             }}
-            className="custom-scrollbar">
+              className="custom-scrollbar">
               <FilterSection {...filterProps} />
             </div>
           )}

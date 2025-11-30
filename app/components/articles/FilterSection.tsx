@@ -15,6 +15,8 @@ type FilterSectionProps = {
   onGenresChange: (values: string[]) => void;
   selectedTargetAudiences: string[];
   onTargetAudiencesChange: (values: string[]) => void;
+  selectedBenefits: string[];
+  onBenefitsChange: (values: string[]) => void;
   selectedRecommendationLevels: string[];
   onRecommendationLevelsChange: (values: string[]) => void;
   selectedMembershipIds: string[];
@@ -27,6 +29,7 @@ type FilterSectionProps = {
   onSortChange: (value: string) => void;
   genreOptions: Array<{ value: string; label: string }>;
   targetAudienceOptions: Array<{ value: string; label: string }>;
+  benefitOptions: Array<{ value: string; label: string }>;
   recommendationLevelOptions: Array<{ value: string; label: string }>;
   membershipOptions: Array<{ value: string; label: string }>;
   hasActiveFilters: boolean;
@@ -40,6 +43,8 @@ export function FilterSection({
   onGenresChange,
   selectedTargetAudiences,
   onTargetAudiencesChange,
+  selectedBenefits,
+  onBenefitsChange,
   selectedRecommendationLevels,
   onRecommendationLevelsChange,
   selectedMembershipIds,
@@ -52,6 +57,7 @@ export function FilterSection({
   onSortChange,
   genreOptions,
   targetAudienceOptions,
+  benefitOptions,
   recommendationLevelOptions,
   membershipOptions,
   hasActiveFilters,
@@ -83,6 +89,13 @@ export function FilterSection({
         values={selectedTargetAudiences}
         options={targetAudienceOptions}
         onChange={onTargetAudiencesChange}
+      />
+
+      <MultiSelectFilter
+        label="得られるメリット"
+        values={selectedBenefits}
+        options={benefitOptions}
+        onChange={onBenefitsChange}
       />
 
       <MultiSelectFilter

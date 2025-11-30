@@ -12,6 +12,7 @@ export async function fetchArticles(params?: {
   membershipIds?: string[];
   genres?: string[];
   targetAudiences?: string[];
+  benefits?: string[];
   recommendationLevels?: string[];
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -28,6 +29,9 @@ export async function fetchArticles(params?: {
   }
   if (params?.targetAudiences && params.targetAudiences.length > 0) {
     searchParams.append('targetAudiences', params.targetAudiences.join(','));
+  }
+  if (params?.benefits && params.benefits.length > 0) {
+    searchParams.append('benefits', params.benefits.join(','));
   }
   if (params?.recommendationLevels && params.recommendationLevels.length > 0) {
     searchParams.append('recommendationLevels', params.recommendationLevels.join(','));

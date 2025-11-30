@@ -16,6 +16,8 @@ type MobileFilterDrawerProps = {
   onGenresChange: (values: string[]) => void;
   selectedTargetAudiences: string[];
   onTargetAudiencesChange: (values: string[]) => void;
+  selectedBenefits: string[];
+  onBenefitsChange: (values: string[]) => void;
   selectedRecommendationLevels: string[];
   onRecommendationLevelsChange: (values: string[]) => void;
   selectedMembershipIds: string[];
@@ -28,6 +30,7 @@ type MobileFilterDrawerProps = {
   onSortChange: (value: string) => void;
   genreOptions: Array<{ value: string; label: string }>;
   targetAudienceOptions: Array<{ value: string; label: string }>;
+  benefitOptions: Array<{ value: string; label: string }>;
   recommendationLevelOptions: Array<{ value: string; label: string }>;
   membershipOptions: Array<{ value: string; label: string }>;
   hasActiveFilters: boolean;

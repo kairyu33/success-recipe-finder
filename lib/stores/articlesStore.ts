@@ -14,6 +14,7 @@ export async function getArticles(options?: {
   search?: string;
   genres?: string[];
   targetAudiences?: string[];
+  benefits?: string[];
   recommendationLevels?: string[];
   membershipIds?: string[];
   sortBy?: string;
@@ -40,6 +41,11 @@ export async function getArticles(options?: {
   // Apply target audience filter
   if (options?.targetAudiences && options.targetAudiences.length > 0) {
     where.targetAudience = { in: options.targetAudiences };
+  }
+
+  // Apply benefit filter
+  if (options?.benefits && options.benefits.length > 0) {
+    where.benefit = { in: options.benefits };
   }
 
   // Apply recommendation level filter

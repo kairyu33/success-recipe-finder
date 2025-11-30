@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const genresParam = searchParams.get('genres') || '';
     const targetAudiencesParam = searchParams.get('targetAudiences') || '';
+    const benefitsParam = searchParams.get('benefits') || '';
     const recommendationLevelsParam = searchParams.get('recommendationLevels') || '';
     const membershipIdsParam = searchParams.get('membershipIds') || '';
     const sortBy = searchParams.get('sortBy') || 'publishedAt';
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
     // Parse comma-separated filter values
     const genres = genresParam ? genresParam.split(',').filter(Boolean) : [];
     const targetAudiences = targetAudiencesParam ? targetAudiencesParam.split(',').filter(Boolean) : [];
+    const benefits = benefitsParam ? benefitsParam.split(',').filter(Boolean) : [];
     const recommendationLevels = recommendationLevelsParam ? recommendationLevelsParam.split(',').filter(Boolean) : [];
     const membershipIds = membershipIdsParam ? membershipIdsParam.split(',').filter(Boolean) : [];
 
@@ -49,6 +51,7 @@ export async function GET(request: NextRequest) {
       search: search || undefined,
       genres: genres.length > 0 ? genres : undefined,
       targetAudiences: targetAudiences.length > 0 ? targetAudiences : undefined,
+      benefits: benefits.length > 0 ? benefits : undefined,
       recommendationLevels: recommendationLevels.length > 0 ? recommendationLevels : undefined,
       membershipIds: membershipIds.length > 0 ? membershipIds : undefined,
       sortBy,
