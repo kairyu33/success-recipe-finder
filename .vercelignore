@@ -8,3 +8,7 @@
 .env.*.local
 *.log
 .DS_Store
+
+# Ignore prisma config files
+prisma.config.ts
+prisma.config.ts.backup
