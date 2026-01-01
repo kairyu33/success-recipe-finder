@@ -13,3 +13,4 @@ export { MobileFilterDrawer } from './MobileFilterDrawer';
 export { ArticleDetailModal } from './ArticleDetailModal';
 export { SimpleRatingInput as RatingInput } from './SimpleRatingInput';
 export { SimpleCommentSection as CommentSection } from './SimpleCommentSection';
+export { RecentArticlesNotice } from './RecentArticlesNotice';
