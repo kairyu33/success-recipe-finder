@@ -82,7 +82,6 @@ export function FilterSection({
         values={selectedGenres}
         options={genreOptions}
         onChange={onGenresChange}
-        isGenreFilter={true}
       />
 
       <MultiSelectFilter

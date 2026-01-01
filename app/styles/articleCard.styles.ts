@@ -8,7 +8,7 @@ export const articleCardStyles = {
   card: (isMobile: boolean): CSSProperties => ({
     display: isMobile ? 'flex' : 'grid',
     flexDirection: isMobile ? 'column' : undefined,
-    gridTemplateColumns: isMobile ? undefined : '75% 1fr auto',
+    gridTemplateColumns: isMobile ? undefined : '22% 1fr auto',
     alignItems: isMobile ? 'flex-start' : 'center',
     gap: '10px',
     padding: isMobile ? '14px' : '10px 14px',

@@ -11,7 +11,6 @@ import {
   ArticleCard,
   FilterSection,
   MobileFilterDrawer,
-  RecentArticlesNotice,
 } from '@/app/components/articles';
 import type { Article, Membership } from '@/types';
 import { useIsMobile } from '@/app/hooks/useMediaQuery';
@@ -209,9 +208,6 @@ export default function ArticlesPage() {
             )}
           </div>
         </div>
-
-        {/* 最近追加された記事のお知らせ */}
-        <RecentArticlesNotice articles={allArticles} />
 
         {/* モバイル: フィルターボタン */}
         {isMobile && (

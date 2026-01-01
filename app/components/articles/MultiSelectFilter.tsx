@@ -4,15 +4,12 @@
 
 'use client';
 
-import { getGenreGradientSelected, getGenreGradientHover } from '@/app/utils/genreColors';
-
 type MultiSelectFilterProps = {
   label: string;
   values: string[];
   options: Array<{ value: string; label: string }>;
   onChange: (values: string[]) => void;
   placeholder?: string;
-  isGenreFilter?: boolean;
 };
 
 export function MultiSelectFilter({
@@ -20,7 +17,6 @@ export function MultiSelectFilter({
   values,
   options,
   onChange,
-  isGenreFilter = false,
 }: MultiSelectFilterProps) {
   const toggleOption = (value: string) => {
     if (values.includes(value)) {
@@ -36,6 +32,7 @@ export function MultiSelectFilter({
 
   return (
     <div>
+      {/* Label with count and clear button */}
       <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
           {label}
@@ -71,6 +68,7 @@ export function MultiSelectFilter({
         )}
       </div>
 
+      {/* Checkbox list - always visible */}
       <div style={{
         background: 'rgba(255, 255, 255, 0.8)',
         backdropFilter: 'blur(12px)',
@@ -84,13 +82,6 @@ export function MultiSelectFilter({
       className="custom-scrollbar">
         {options.map((option) => {
           const isSelected = values.includes(option.value);
-          const selectedBg = isGenreFilter
-            ? getGenreGradientSelected(option.value)
-            : 'linear-gradient(to right, #f3e8ff, #fce7f3)';
-          const hoverBg = isGenreFilter
-            ? getGenreGradientHover(option.value)
-            : 'linear-gradient(to right, #faf5ff, #fdf2f8)';
-
           return (
             <label
               key={option.value}
@@ -101,12 +92,12 @@ export function MultiSelectFilter({
                 padding: '6px 8px',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                background: isSelected ? selectedBg : 'transparent',
+                background: isSelected ? 'linear-gradient(to right, #f3e8ff, #fce7f3)' : 'transparent',
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = hoverBg;
+                  e.currentTarget.style.background = 'linear-gradient(to right, #faf5ff, #fdf2f8)';
                 }
               }}
               onMouseLeave={(e) => {
@@ -115,6 +106,7 @@ export function MultiSelectFilter({
                 }
               }}
             >
+              {/* Custom checkbox */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <input
                   type="checkbox"
@@ -159,6 +151,7 @@ export function MultiSelectFilter({
                 </div>
               </div>
 
+              {/* Label */}
               <span
                 style={{
                   fontSize: '14px',

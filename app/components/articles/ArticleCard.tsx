@@ -48,7 +48,6 @@ export function ArticleCard({ article }: ArticleCardProps) {
           <ArticleTitle
             title={article.title}
             noteLink={article.noteLink}
-            genre={article.genre}
             isMobile={isMobile}
           />
           <ArticleMetadata
